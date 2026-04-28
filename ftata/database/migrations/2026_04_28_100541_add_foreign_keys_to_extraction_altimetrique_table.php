@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('extraction_altimetrique', function (Blueprint $table) {
+            $table->foreign(['metadata_id'], 'extraction_altimetrique_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['mode_extraction_id'], 'extraction_altimetrique_mode_extraction_id_fkey')->references(['id'])->on('modes_extraction')->onUpdate('no action')->onDelete('no action');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('extraction_altimetrique', function (Blueprint $table) {
+            $table->dropForeign('extraction_altimetrique_metadata_id_fkey');
+            $table->dropForeign('extraction_altimetrique_mode_extraction_id_fkey');
+        });
+    }
+};
