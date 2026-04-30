@@ -26,8 +26,11 @@ use Illuminate\Database\Eloquent\Model;
 class Feuille extends Model
 {
 	protected $table = 'feuilles';
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $fillable = [
+		'id',
 		'nom'
 	];
 

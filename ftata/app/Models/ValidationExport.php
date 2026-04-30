@@ -26,12 +26,16 @@ class ValidationExport extends Model
 {
 	protected $table = 'validation_export';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
+		'id' => 'int',
 		'metadata_id' => 'int'
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
 		'emplacement',
 		'format'

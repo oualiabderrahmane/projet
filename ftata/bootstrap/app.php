@@ -12,8 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-        'role' => \App\Http\Middleware\RoleMiddleware::class,
-    ]);
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

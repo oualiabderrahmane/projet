@@ -30,14 +30,18 @@ class Digitalisation2d extends Model
 {
 	protected $table = 'digitalisation_2d';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
+		'id' => 'int',
 		'metadata_id' => 'int',
 		'mode_realisation_id' => 'int',
 		'equipement_id' => 'int'
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
 		'logiciel_utilise',
 		'version_logiciel',

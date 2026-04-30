@@ -30,6 +30,8 @@ class ExtractionAltimetrique extends Model
 {
 	protected $table = 'extraction_altimetrique';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
 		'metadata_id' => 'int',
@@ -37,6 +39,7 @@ class ExtractionAltimetrique extends Model
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
 		'mnt',
 		'resolution',

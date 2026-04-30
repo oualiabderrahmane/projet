@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
                 ModeRealisationSeeder::class,
                 TypeDonneeSeeder::class,
                 TypeOsmSeeder::class,
+                SystemesReferenceSeeder::class,
             ]);
 
 

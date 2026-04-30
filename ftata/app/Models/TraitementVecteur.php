@@ -31,6 +31,8 @@ class TraitementVecteur extends Model
 {
 	protected $table = 'traitement_vecteur';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
 		'metadata_id' => 'int',
@@ -39,6 +41,7 @@ class TraitementVecteur extends Model
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
 		'logiciel_utilise',
 		'version_logiciel',

@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('completement_spatial', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'completement_spatial_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['type_donnees_id'], 'completement_spatial_type_donnees_id_fkey')->references(['id'])->on('types_donnees_spatiales')->onUpdate('no action')->onDelete('no action');
         });
     }
 

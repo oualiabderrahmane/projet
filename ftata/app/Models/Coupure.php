@@ -26,12 +26,15 @@ class Coupure extends Model
 {
 	protected $table = 'coupures';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
 		'feuille_id' => 'int'
 	];
 
 	protected $fillable = [
+		'id',
 		'feuille_id',
 		'nom'
 	];

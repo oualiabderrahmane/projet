@@ -3,33 +3,120 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 use App\Models\CollectePreparation;
+use App\Models\Metadata;
+use App\Models\TypesOsm;
 
 class CollectePreparationController extends Controller
 {
+    private function nextId(string $modelClass): int
+    {
+        $lastId = $modelClass::query()
+            ->lockForUpdate()
+            ->orderByDesc('id')
+            ->value('id');
+
+        return ((int) $lastId) + 1;
+    }
+
+    private function metadataRows(?int $includeMetadataId = null)
+    {
+        return Metadata::with(['coupure.feuille', 'echelle'])
+            ->where(function ($query) use ($includeMetadataId) {
+                $query->whereDoesntHave('collecte_preparations');
+
+                if ($includeMetadataId) {
+                    $query->orWhere('id', $includeMetadataId);
+                }
+            })
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Metadata $metadata) => [
+                'id' => $metadata->id,
+                'feuille_id' => $metadata->coupure?->feuille?->id,
+                'feuille_nom' => $metadata->coupure?->feuille?->nom,
+                'coupure_id' => $metadata->coupure?->id,
+                'coupure_nom' => $metadata->coupure?->nom,
+                'echelle_id' => $metadata->echelle?->id,
+                'echelle_valeur' => $metadata->echelle?->valeur,
+            ])
+            ->values();
+    }
+
+    private function preparationRows()
+    {
+        return CollectePreparation::with([
+            'metadata.coupure.feuille',
+            'metadata.echelle',
+            'types_osm',
+        ])
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (CollectePreparation $preparation) => [
+                'id' => $preparation->id,
+                'metadata_id' => $preparation->metadata_id,
+                'feuille_id' => $preparation->metadata?->coupure?->feuille?->id,
+                'feuille_nom' => $preparation->metadata?->coupure?->feuille?->nom,
+                'coupure_id' => $preparation->metadata?->coupure?->id,
+                'coupure_nom' => $preparation->metadata?->coupure?->nom,
+                'echelle_id' => $preparation->metadata?->echelle?->id,
+                'echelle_valeur' => $preparation->metadata?->echelle?->valeur,
+                'date_creation_metadata' => $preparation->metadata?->date_creation_metadata?->format('Y-m-d'),
+                'imagerie' => $preparation->imagerie,
+                'resolution' => $preparation->resolution,
+                'type_osm_id' => $preparation->type_osm_id,
+                'type_osm_nom' => $preparation->types_osm?->nom,
+                'geonames_annee_mise_a_jour' => $preparation->geonames_annee_mise_a_jour,
+                'gadm_version' => $preparation->gadm_version,
+            ])
+            ->values();
+    }
+
+    public function home()
+    {
+        return Inertia::render('Collect/HomePreparation', [
+            'metadata' => $this->metadataRows(),
+            'typesOsm' => TypesOsm::orderBy('nom')->get(['id', 'nom']),
+            'preparations' => $this->preparationRows(),
+        ]);
+    }
+
     // GET all
     public function index()
     {
         return response()->json(
-            CollectePreparation::with('metadata')->get()
+            CollectePreparation::with('metadata.coupure.feuille')->get()
         );
     }
 
     // CREATE
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:collecte_preparation,metadata_id',
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
-            'type_osm_id' => 'nullable|integer',
+            'type_osm_id' => 'nullable|exists:types_osm,id',
             'geonames_annee_mise_a_jour' => 'nullable|integer',
             'gadm_version' => 'nullable|string|max:50',
         ]);
 
-        $cp = CollectePreparation::create($request->all());
+        $cp = DB::transaction(function () use ($validated) {
+            return CollectePreparation::create([
+                'id' => $this->nextId(CollectePreparation::class),
+                ...$validated,
+            ]);
+        });
 
-        return response()->json($cp, 201);
+        if ($request->expectsJson()) {
+            return response()->json($cp, 201);
+        }
+
+        return redirect()
+            ->route('collecte-preparation.home')
+            ->with('success', 'Preparation creee avec succes.');
     }
 
     // SHOW
@@ -45,25 +132,26 @@ class CollectePreparationController extends Controller
     }
 
     // UPDATE
-    public function update(Request $request, $id)
+    public function update(Request $request, CollectePreparation $preparation)
     {
-        $cp = CollectePreparation::find($id);
-
-        if (!$cp) {
-            return response()->json(['message' => 'Not found'], 404);
-        }
-
-        $request->validate([
+        $validated = $request->validate([
+            'metadata_id' => 'required|exists:metadata,id|unique:collecte_preparation,metadata_id,' . $preparation->id,
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
-            'type_osm_id' => 'nullable|integer',
+            'type_osm_id' => 'nullable|exists:types_osm,id',
             'geonames_annee_mise_a_jour' => 'nullable|integer',
             'gadm_version' => 'nullable|string|max:50',
         ]);
 
-        $cp->update($request->all());
+        $preparation->update($validated);
 
-        return response()->json($cp);
+        if ($request->expectsJson()) {
+            return response()->json($preparation);
+        }
+
+        return redirect()
+            ->route('collecte-preparation.home')
+            ->with('success', 'Preparation modifiee avec succes.');
     }
 
     // DELETE

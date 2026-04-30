@@ -11,10 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class TypesDonneesSpatiale
- * 
+ *
  * @property int $id
  * @property string $nom
- * 
+ *
  * @property Collection|CompletementSpatial[] $completement_spatials
  *
  * @package App\Models
@@ -28,8 +28,23 @@ class TypesDonneesSpatiale extends Model
 		'nom'
 	];
 
-	public function completement_spatials()
+	public function completements()
+{
+    return $this->belongsToMany(
+        CompletementSpatial::class,
+        'completement_spatial_type',
+        'type_donnees_id',
+        'completement_spatial_id'
+    );
+}
+
+	public function completements_spatials()
 	{
-		return $this->hasMany(CompletementSpatial::class, 'type_donnees_id');
+		return $this->belongsToMany(
+			CompletementSpatial::class,
+			'completement_spatial_type_donnee',
+			'type_donnees_id',
+			'completement_spatial_id'
+		);
 	}
 }

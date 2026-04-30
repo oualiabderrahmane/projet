@@ -30,14 +30,18 @@ class CollectePreparation extends Model
 {
 	protected $table = 'collecte_preparation';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
+		'id' => 'int',
 		'metadata_id' => 'int',
 		'type_osm_id' => 'int',
 		'geonames_annee_mise_a_jour' => 'int'
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
 		'imagerie',
 		'resolution',

@@ -4,12 +4,135 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use App\Models\Echelle;
 use App\Models\Feuille;
 use App\Models\Coupure;
 use App\Models\Metadata;
+use App\Models\Pay;
+use App\Models\SystemesReference;
+use App\Models\TypesReleve;
 
 class MetadataController extends Controller
 {
+    private function nextId(string $modelClass): int
+    {
+        $lastId = $modelClass::query()
+            ->lockForUpdate()
+            ->orderByDesc('id')
+            ->value('id');
+
+        return ((int) $lastId) + 1;
+    }
+    private function formOptions(): array
+    {
+        return [
+            'pays' => Pay::orderBy('nom')->get(['id', 'nom']),
+            'systemesReference' => SystemesReference::orderBy('nom')->get(['id', 'nom', 'type', 'zone']),
+            'typesReleve' => TypesReleve::orderBy('nom')->get(['id', 'nom']),
+            'echelles' => Echelle::orderBy('id')->get(['id', 'valeur']),
+        ];
+    }
+private function metadataRows(Request $request)
+{
+    $filters = $request->only([
+        'feuille_id',
+        'coupure_id',
+        'pays_id',
+        'systeme_reference_id',
+        'type_releve_id',
+        'echelle_id',
+    ]);
+
+    return Metadata::query()
+        ->with([
+            'coupure.feuille',
+            'pay',
+            'systemes_reference',
+            'types_releve',
+            'echelle',
+        ])
+
+        ->when($filters['feuille_id'] ?? null, function ($query, $feuilleId) {
+            $query->whereHas('coupure.feuille', function ($q) use ($feuilleId) {
+                $q->where('id', $feuilleId);
+            });
+        })
+
+        ->when($filters['coupure_id'] ?? null, function ($query, $coupureId) {
+            $query->where('coupure_id', $coupureId);
+        })
+
+        ->when($filters['pays_id'] ?? null, function ($query, $paysId) {
+            $query->where('pay_id', $paysId);
+        })
+
+        ->when($filters['systeme_reference_id'] ?? null, function ($query, $systemeId) {
+            $query->where('systemes_reference_id', $systemeId);
+        })
+
+        ->when($filters['type_releve_id'] ?? null, function ($query, $typeReleveId) {
+            $query->where('types_releve_id', $typeReleveId);
+        })
+
+        ->when($filters['echelle_id'] ?? null, function ($query, $echelleId) {
+            $query->where('echelle_id', $echelleId);
+        })
+        ->orderByDesc('date_creation_metadata')
+        ->orderByDesc('id')
+        ->get()
+        ->map(fn (Metadata $metadata) => [
+            'id' => $metadata->id,
+            'feuille_id' => $metadata->coupure?->feuille?->id,
+            'feuille_nom' => $metadata->coupure?->feuille?->nom,
+
+            'coupure_id' => $metadata->coupure?->id,
+            'coupure_nom' => $metadata->coupure?->nom,
+
+            'date_creation_metadata' => $metadata->date_creation_metadata?->format('Y-m-d'),
+
+            'pays_id' => $metadata->pay?->id,
+            'pays_nom' => $metadata->pay?->nom,
+
+            'systeme_reference_id' => $metadata->systemes_reference?->id,
+            'systeme_reference_nom' => $metadata->systemes_reference?->nom,
+            'systeme_reference_type' => $metadata->systemes_reference?->type,
+            'systeme_reference_zone' => $metadata->systemes_reference?->zone,
+            'systeme_reference_label' => collect([
+                $metadata->systemes_reference?->nom,
+                $metadata->systemes_reference?->type,
+                $metadata->systemes_reference?->zone
+                    ? 'Zone ' . $metadata->systemes_reference?->zone
+                    : null,
+            ])->filter()->join(' - '),
+
+            'type_releve_id' => $metadata->types_releve?->id,
+            'type_releve_nom' => $metadata->types_releve?->nom,
+
+            'echelle_id' => $metadata->echelle?->id,
+            'echelle_valeur' => $metadata->echelle?->valeur,
+        ])
+        ->values();
+}
+//sa pour laffichage des metadata avec filters i use id pour les feuilles et coupures dans la table metadata pour faciliter les filtres et les relations
+    public function home(Request $request)
+    {
+        return Inertia::render('Collect/Metadata/MetadataHome', [
+            ...$this->formOptions(),
+            'metadata' => $this->metadataRows($request),
+            'filters' => $request->only([
+                'feuille_id',
+                'coupure_id',
+                'pays_id',
+                'systeme_reference_id',
+                'type_releve_id',
+                'echelle_id',
+            ]),
+        ]);
+    }
+
+
+
     public function index()
 {
     return response()->json(
@@ -44,46 +167,108 @@ public function byCoupure($coupure_id)
 }
     public function store(Request $request)
 {
-    $request->validate([
+    $validated = $request->validate([
         'feuille_nom' => 'required|string|max:100',
         'coupure_nom' => 'required|string|max:100',
+        'pays_id' => 'nullable|exists:pays,id',
+        'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
+        'type_releve_id' => 'nullable|exists:types_releve,id',
+        'echelle_id' => 'nullable|exists:echelles,id',
         'date_creation_metadata' => 'required|date'
     ]);
 
-    return DB::transaction(function () use ($request) {
+    $metadata = DB::transaction(function () use ($validated) {
 
         // 1. Check or create Feuille
-        $feuille = Feuille::where('nom', $request->feuille_nom)->first();
+        $feuille = Feuille::where('nom', $validated['feuille_nom'])->first();
 
         if (!$feuille) {
             $feuille = Feuille::create([
-                'nom' => $request->feuille_nom
+                'id' => $this->nextId(Feuille::class),
+                'nom' => $validated['feuille_nom']
             ]);
         }
 
         // 2. Check or create Coupure under this Feuille
-        $coupure = Coupure::where('nom', $request->coupure_nom)
+        $coupure = Coupure::where('nom', $validated['coupure_nom'])
             ->where('feuille_id', $feuille->id)
             ->first();
 
         if (!$coupure) {
             $coupure = Coupure::create([
-                'nom' => $request->coupure_nom,
+                'id' => $this->nextId(Coupure::class),
+                'nom' => $validated['coupure_nom'],
                 'feuille_id' => $feuille->id
             ]);
         }
 
         // 3. Create Metadata (no need to check usually)
-        $metadata = Metadata::create([
+        return Metadata::create([
+            'id' => $this->nextId(Metadata::class),
             'coupure_id' => $coupure->id,
-            'pays_id' => $request->pays_id,
-            'systeme_reference_id' => $request->systeme_reference_id,
-            'type_releve_id' => $request->type_releve_id,
-            'echelle_id' => $request->echelle_id,
-            'date_creation_metadata' => $request->date_creation_metadata
+            'pays_id' => $validated['pays_id'] ?? null,
+            'systeme_reference_id' => $validated['systeme_reference_id'] ?? null,
+            'type_releve_id' => $validated['type_releve_id'] ?? null,
+            'echelle_id' => $validated['echelle_id'] ?? null,
+            'date_creation_metadata' => $validated['date_creation_metadata']
         ]);
-
-        return response()->json($metadata, 201);
     });
+
+    if ($request->expectsJson()) {
+        return response()->json($metadata->load('coupure.feuille'), 201);
+    }
+
+    return redirect()
+        ->route('metadata.home')
+        ->with('success', 'Metadata cree avec succes.');
+}
+
+public function update(Request $request, Metadata $metadata)
+{
+    $validated = $request->validate([
+        'feuille_nom' => 'required|string|max:100',
+        'coupure_nom' => 'required|string|max:100',
+        'pays_id' => 'nullable|exists:pays,id',
+        'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
+        'type_releve_id' => 'nullable|exists:types_releve,id',
+        'echelle_id' => 'nullable|exists:echelles,id',
+        'date_creation_metadata' => 'required|date'
+    ]);
+
+    DB::transaction(function () use ($validated, $metadata) {
+        $feuille = Feuille::where('nom', $validated['feuille_nom'])->first();
+
+        if (!$feuille) {
+            $feuille = Feuille::create([
+                'id' => $this->nextId(Feuille::class),
+                'nom' => $validated['feuille_nom']
+            ]);
+        }
+
+        $coupure = Coupure::where('nom', $validated['coupure_nom'])
+            ->where('feuille_id', $feuille->id)
+            ->first();
+
+        if (!$coupure) {
+            $coupure = Coupure::create([
+                'id' => $this->nextId(Coupure::class),
+                'nom' => $validated['coupure_nom'],
+                'feuille_id' => $feuille->id
+            ]);
+        }
+
+        $metadata->update([
+            'coupure_id' => $coupure->id,
+            'pays_id' => $validated['pays_id'] ?? null,
+            'systeme_reference_id' => $validated['systeme_reference_id'] ?? null,
+            'type_releve_id' => $validated['type_releve_id'] ?? null,
+            'echelle_id' => $validated['echelle_id'] ?? null,
+            'date_creation_metadata' => $validated['date_creation_metadata']
+        ]);
+    });
+
+    return redirect()
+        ->route('metadata.home')
+        ->with('success', 'Metadata modifie avec succes.');
 }
 }

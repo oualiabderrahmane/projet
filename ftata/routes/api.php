@@ -43,7 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/metadata/feuille/{id}', [MetadataController::class, 'byFeuille']);
     Route::get('/metadata/coupure/{id}', [MetadataController::class, 'byCoupure']);
 
-    Route::post('/metadata/full-create', [MetadataController::class, 'store']);
+    Route::post('/metadata/full-create', [MetadataController::class, 'store'])
+        ->middleware('role:collect');
 
 //    Route::post('/metadata', [MetadataController::class, 'store']);
     Route::put('/metadata/{id}', [MetadataController::class, 'update']);

@@ -11,11 +11,11 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class CompletementSpatial
- * 
+ *
  * @property int $id
  * @property int $metadata_id
  * @property int|null $type_donnees_id
- * 
+ *
  * @property Metadata $metadata
  * @property TypesDonneesSpatiale|null $types_donnees_spatiale
  * @property Collection|CoupureFiche[] $coupure_fiches
@@ -26,15 +26,19 @@ class CompletementSpatial extends Model
 {
 	protected $table = 'completement_spatial';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
+		'id' => 'int',
 		'metadata_id' => 'int',
-		'type_donnees_id' => 'int'
+
 	];
 
 	protected $fillable = [
+		'id',
 		'metadata_id',
-		'type_donnees_id'
+
 	];
 
 	public function metadata()
@@ -42,9 +46,24 @@ class CompletementSpatial extends Model
 		return $this->belongsTo(Metadata::class);
 	}
 
-	public function types_donnees_spatiale()
+	public function types()
+{
+    return $this->belongsToMany(
+        TypesDonneesSpatiales::class,
+        'completement_spatial_type',
+        'completement_spatial_id',
+        'type_donnees_id'
+    );
+}
+
+	public function types_donnees_spatiales()
 	{
-		return $this->belongsTo(TypesDonneesSpatiale::class, 'type_donnees_id');
+		return $this->belongsToMany(
+			TypesDonneesSpatiale::class,
+			'completement_spatial_type_donnee',
+			'completement_spatial_id',
+			'type_donnees_id'
+		);
 	}
 
 	public function coupure_fiches()
