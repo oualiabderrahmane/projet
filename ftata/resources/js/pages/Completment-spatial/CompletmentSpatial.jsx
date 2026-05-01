@@ -62,6 +62,7 @@ export default function CompletmentSpatial({ metadata = [], typesDonnees = [] })
                   disabled={typesDonnees.length === 0}
                 />
               </div>
+
             </div>
 
             <div className="mt-6 flex justify-end">

@@ -185,7 +185,7 @@ export default function TraitmentVecteurs({
             error={errors.mode_realisation_id}
             onChange={setData}
           >
-            <option value="">Aucun mode</option>
+            <option value="">Selectionner un mode</option>
             {modesRealisation.map((modeRealisation) => (
               <option key={modeRealisation.id} value={modeRealisation.id}>
                 {modeRealisation.nom}
@@ -200,6 +200,7 @@ export default function TraitmentVecteurs({
             error={errors.tolerance_topologique}
             onChange={setData}
           />
+
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
@@ -215,7 +216,7 @@ export default function TraitmentVecteurs({
           )}
           <button
             type="submit"
-            disabled={processing || metadataForForm.length === 0}
+            disabled={processing || metadataForForm.length === 0 || !data.mode_realisation_id}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {processing ? "Enregistrement..." : isEditing ? "Modifier" : "Enregistrer"}

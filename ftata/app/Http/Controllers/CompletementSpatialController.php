@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\CompletementSpatial;
 use App\Models\Metadata;
@@ -11,12 +13,9 @@ use App\Models\TypesDonneesSpatiale;
 
 class CompletementSpatialController extends Controller
 {
-    private function pageData(): array
+    private function formatMetadataRows(Collection $metadataRows)
     {
-        $metadata = Metadata::with(['coupure.feuille', 'echelle'])
-            ->whereDoesntHave('completement_spatials')
-            ->orderBy('id')
-            ->get()
+        return $metadataRows
             ->map(fn (Metadata $m) => [
                 'id' => $m->id,
                 'feuille_id' => $m->coupure?->feuille?->id,
@@ -26,6 +25,40 @@ class CompletementSpatialController extends Controller
                 'echelle_valeur' => $m->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('digitalisation2ds', fn ($query) => $query->where('traite', true))
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = CompletementSpatial::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
+    }
+
+    private function pageData(): array
+    {
+        $metadata = $this->metadataCollections();
 
         $completements = CompletementSpatial::with([
             'metadata.coupure.feuille',
@@ -40,6 +73,7 @@ class CompletementSpatialController extends Controller
             'coupure_nom'             => $c->metadata?->coupure?->nom,
             'echelle_id'              => $c->metadata?->echelle?->id,
             'echelle_valeur'          => $c->metadata?->echelle?->valeur,
+            'traite'                  => (bool) $c->traite,
             'types_donnees_spatiales' => $c->types_donnees_spatiales->map(fn ($t) => [
                 'id'  => $t->id,
                 'nom' => $t->nom,
@@ -47,7 +81,8 @@ class CompletementSpatialController extends Controller
         ])->values();
 
         return [
-            'metadata' => $metadata,
+            'metadata' => $metadata['all'],
+            'metadataForCompletement' => $metadata['available'],
             'typesDonnees' => TypesDonneesSpatiale::orderBy('nom')->get(['id', 'nom']),
             'completements' => $completements,
         ];
@@ -100,7 +135,13 @@ class CompletementSpatialController extends Controller
     public function store(Request $request)
 {
     $validated = $request->validate([
-        'metadata_id' => 'required|exists:metadata,id|unique:completement_spatial,metadata_id',
+        'metadata_id' => [
+            'required',
+            'exists:metadata,id',
+            'unique:completement_spatial,metadata_id',
+            Rule::exists('digitalisation_2d', 'metadata_id')
+                ->where(fn ($query) => $query->where('traite', true)),
+        ],
         'type_donnees_ids' => 'required|array|min:1',
         'type_donnees_ids.*' => 'exists:types_donnees_spatiales,id',
     ]);
@@ -109,6 +150,7 @@ class CompletementSpatialController extends Controller
         $record = CompletementSpatial::create([
             'id' => $this->nextId(CompletementSpatial::class),
             'metadata_id' => $validated['metadata_id'],
+            'traite' => true,
         ]);
 
         $record->types_donnees_spatiales()->sync($validated['type_donnees_ids']);

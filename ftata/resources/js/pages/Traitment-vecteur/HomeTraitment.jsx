@@ -6,6 +6,7 @@ import TraitmentVecteurs from "./TraitmentVecteurs";
 export default function HomeTraitment({
   traitements = [],
   metadata = [],
+  metadataForTraitement = [],
   modesRealisation = [],
 }) {
   const { props } = usePage();
@@ -36,13 +37,14 @@ export default function HomeTraitment({
 
           <div className="space-y-6">
             <TraitmentVecteurs
-              metadata={metadata}
+              metadata={metadataForTraitement}
               modesRealisation={modesRealisation}
               traitementRecord={selectedTraitement}
               onCancelEdit={() => setSelectedTraitement(null)}
               onSaved={() => setSelectedTraitement(null)}
             />
             <TraitmentList
+              metadata={metadata}
               traitements={traitements}
               editingTraitementId={selectedTraitement?.id}
               onEdit={handleEdit}

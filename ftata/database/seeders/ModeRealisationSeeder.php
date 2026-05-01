@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -9,12 +10,9 @@ class ModeRealisationSeeder extends Seeder
     public function run(): void
     {
         $modes = [
-            'Digitalisation (2D)',
-            'Digitalisation assistée',
-            'Extraction automatique',
-            'Classification orientée objet',
-            'Vectorisation automatique',
-            'Restitution photogrammétrique (3D)',
+            'Intégration des données',
+            'Traitement des données',
+            'Intégration et traitement',
         ];
 
         $nextId = ((int) ModeRealisation::max('id')) + 1;

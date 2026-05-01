@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -25,36 +26,77 @@ function uniqueOptions(items, idKey, labelKey) {
   ].sort((a, b) => String(a.label).localeCompare(String(b.label)));
 }
 
-export default function RedactionList({ redactions = [], editingRedactionId = null, onEdit }) {
+export default function RedactionList({
+  metadata = [],
+  redactions = [],
+  editingRedactionId = null,
+  onEdit,
+}) {
   const [feuilleFilter, setFeuilleFilter] = useState("");
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
+
+  const rows = useMemo(() => {
+    const redactionByMetadataId = new Map(
+      redactions.map((redaction) => [String(redaction.metadata_id), redaction])
+    );
+
+    return metadata.map((metadataRow) => {
+      const redaction = redactionByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: redaction?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(redaction),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        logiciel_utilise: redaction?.logiciel_utilise || "",
+        version_logiciel: redaction?.version_logiciel || "",
+        traite: Boolean(redaction?.traite),
+      };
+    });
+  }, [metadata, redactions]);
 
   const feuilles = useMemo(
-    () => uniqueOptions(redactions, "feuille_id", "feuille_nom"),
-    [redactions]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? redactions.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : redactions;
+      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
+      : rows;
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [redactions, feuilleFilter]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(redactions, "echelle_id", "echelle_valeur"),
-    [redactions]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const filtered = useMemo(() => {
-    return redactions.filter((item) => {
+    return rows.filter((item) => {
       if (feuilleFilter && String(item.feuille_id) !== String(feuilleFilter)) return false;
       if (coupureFilter && String(item.coupure_id) !== String(coupureFilter)) return false;
       if (echelleFilter && String(item.echelle_id) !== String(echelleFilter)) return false;
+      if (traiteFilter !== "" && String(Boolean(item.traite)) !== traiteFilter) return false;
       return true;
     });
-  }, [redactions, feuilleFilter, coupureFilter, echelleFilter]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, rows, traiteFilter]);
+
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || traiteFilter;
+
+  const resetFilters = () => {
+    setFeuilleFilter("");
+    setCoupureFilter("");
+    setEchelleFilter("");
+    setTraiteFilter("");
+  };
 
   return (
     <section className="rounded bg-white p-6 shadow">
@@ -62,12 +104,21 @@ export default function RedactionList({ redactions = [], editingRedactionId = nu
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Redactions cartographiques</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filtered.length} / {redactions.length} redaction{redactions.length !== 1 ? "s" : ""}
+            {filtered.length} / {rows.length} metadata
           </p>
         </div>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -101,6 +152,12 @@ export default function RedactionList({ redactions = [], editingRedactionId = nu
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {filtered.length === 0 ? (
@@ -115,6 +172,7 @@ export default function RedactionList({ redactions = [], editingRedactionId = nu
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Echelle</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Logiciel</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
@@ -130,12 +188,27 @@ export default function RedactionList({ redactions = [], editingRedactionId = nu
                     <td className="px-3 py-2 text-gray-700">{item.logiciel_utilise || "-"}</td>
                     <td className="px-3 py-2 text-gray-700">{item.version_logiciel || "-"}</td>
                     <td className="px-3 py-2">
+                      {item.isPrepared ? (
+                        <TraiteBadge value={item.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A traiter
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(item)}
+                        onClick={() =>
+                          onEdit?.(item.isPrepared ? item : { ...item, id: null })
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : item.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

@@ -6,6 +6,7 @@ import PreaparationList from "./PreaparationList";
 export default function HomePreparation({
   preparations = [],
   metadata = [],
+  metadataForPreparation = [],
   typesOsm = [],
 }) {
   const { props } = usePage();
@@ -38,13 +39,14 @@ export default function HomePreparation({
 
           <div className="space-y-6">
             <PreparationCreate
-              metadata={metadata}
+              metadata={metadataForPreparation}
               typesOsm={typesOsm}
               preparationRecord={selectedPreparation}
               onCancelEdit={() => setSelectedPreparation(null)}
               onSaved={() => setSelectedPreparation(null)}
             />
             <PreaparationList
+              metadata={metadata}
               preparations={preparations}
               editingPreparationId={selectedPreparation?.id}
               onEdit={handleEdit}

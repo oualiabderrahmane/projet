@@ -15,6 +15,7 @@ class AuthController extends Controller
 
         $routesByRole = [
             'admin' => 'admin.dashboard',
+            'chef' => 'chef.home',
             'collect' => 'collect.home',
             'extraction' => 'extraction.home',
             'digitalisation' => 'digitalisation.home',

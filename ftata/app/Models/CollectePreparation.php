@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $type_osm_id
  * @property int|null $geonames_annee_mise_a_jour
  * @property string|null $gadm_version
+ * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property TypesOsm|null $types_osm
@@ -37,7 +38,8 @@ class CollectePreparation extends Model
 		'id' => 'int',
 		'metadata_id' => 'int',
 		'type_osm_id' => 'int',
-		'geonames_annee_mise_a_jour' => 'int'
+		'geonames_annee_mise_a_jour' => 'int',
+		'traite' => 'bool'
 	];
 
 	protected $fillable = [
@@ -47,7 +49,8 @@ class CollectePreparation extends Model
 		'resolution',
 		'type_osm_id',
 		'geonames_annee_mise_a_jour',
-		'gadm_version'
+		'gadm_version',
+		'traite'
 	];
 
 	public function metadata()

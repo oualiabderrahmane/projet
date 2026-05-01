@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -32,6 +33,7 @@ function uniqueOptions(items, idKey, labelKey) {
 }
 
 export default function PreaparationList({
+  metadata = [],
   preparations = [],
   editingPreparationId = null,
   onEdit,
@@ -40,59 +42,94 @@ export default function PreaparationList({
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [typeOsmFilter, setTypeOsmFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
+
+  const rows = useMemo(() => {
+    const preparationByMetadataId = new Map(
+      preparations.map((preparation) => [String(preparation.metadata_id), preparation])
+    );
+
+    return metadata.map((metadataRow) => {
+      const preparation = preparationByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: preparation?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(preparation),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        date_creation_metadata: metadataRow.date_creation_metadata,
+        imagerie: preparation?.imagerie || "",
+        resolution: preparation?.resolution || "",
+        type_osm_id: preparation?.type_osm_id ?? null,
+        type_osm_nom: preparation?.type_osm_nom || "",
+        geonames_annee_mise_a_jour: preparation?.geonames_annee_mise_a_jour || "",
+        gadm_version: preparation?.gadm_version || "",
+        traite: Boolean(preparation?.traite),
+      };
+    });
+  }, [metadata, preparations]);
 
   const feuilles = useMemo(
-    () => uniqueOptions(preparations, "feuille_id", "feuille_nom"),
-    [preparations]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? preparations.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : preparations;
+      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
+      : rows;
 
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [feuilleFilter, preparations]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(preparations, "echelle_id", "echelle_valeur"),
-    [preparations]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const typesOsm = useMemo(
-    () => uniqueOptions(preparations, "type_osm_id", "type_osm_nom"),
-    [preparations]
+    () => uniqueOptions(rows, "type_osm_id", "type_osm_nom"),
+    [rows]
   );
 
   const filteredPreparations = useMemo(() => {
-    return preparations.filter((preparation) => {
+    return rows.filter((preparation) => {
       if (feuilleFilter && String(preparation.feuille_id) !== String(feuilleFilter)) return false;
       if (coupureFilter && String(preparation.coupure_id) !== String(coupureFilter)) return false;
       if (echelleFilter && String(preparation.echelle_id) !== String(echelleFilter)) return false;
       if (typeOsmFilter && String(preparation.type_osm_id) !== String(typeOsmFilter)) {
         return false;
       }
+      if (traiteFilter !== "" && String(Boolean(preparation.traite)) !== traiteFilter) {
+        return false;
+      }
 
       return true;
     });
-  }, [coupureFilter, echelleFilter, feuilleFilter, preparations, typeOsmFilter]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, rows, traiteFilter, typeOsmFilter]);
 
-  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || typeOsmFilter;
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || typeOsmFilter || traiteFilter;
 
   const resetFilters = () => {
     setFeuilleFilter("");
     setCoupureFilter("");
     setEchelleFilter("");
     setTypeOsmFilter("");
+    setTraiteFilter("");
   };
 
   return (
     <section className="rounded bg-white p-6 shadow">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Preparations creees</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Metadata / Preparation</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filteredPreparations.length} / {preparations.length} preparation
+            {filteredPreparations.length} / {rows.length} metadata
           </p>
         </div>
 
@@ -107,7 +144,7 @@ export default function PreaparationList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -150,10 +187,16 @@ export default function PreaparationList({
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {filteredPreparations.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-600">Aucune preparation creee.</p>
+        <p className="mt-4 text-sm text-gray-600">Aucune metadata trouvee.</p>
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -168,13 +211,13 @@ export default function PreaparationList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Type OSM</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">GeoNames</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">GADM</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredPreparations.map((preparation) => {
-                const isEditing =
-                  String(editingPreparationId || "") === String(preparation.id);
+                const isEditing = String(editingPreparationId || "") === String(preparation.id);
 
                 return (
                   <tr
@@ -209,12 +252,31 @@ export default function PreaparationList({
                       {preparation.gadm_version || "-"}
                     </td>
                     <td className="px-3 py-2">
+                      {preparation.isPrepared ? (
+                        <TraiteBadge value={preparation.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A preparer
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(preparation)}
+                        onClick={() =>
+                          onEdit?.(
+                            preparation.isPrepared
+                              ? preparation
+                              : { ...preparation, id: null }
+                          )
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : preparation.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

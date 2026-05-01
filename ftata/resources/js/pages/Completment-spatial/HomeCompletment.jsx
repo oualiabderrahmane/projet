@@ -6,6 +6,7 @@ import CompletementSpatialList from "./CompletmentSpatialList";
 
 export default function HomeCompletment({
   metadata = [],
+  metadataForCompletement = [],
   typesDonnees = [],
   completements = [],
 }) {
@@ -62,7 +63,7 @@ export default function HomeCompletment({
   const submitDisabled =
     processing ||
     data.type_donnees_ids.length === 0 ||
-    (!isEditing && (metadata.length === 0 || !data.metadata_id));
+    (!isEditing && (metadataForCompletement.length === 0 || !data.metadata_id));
 
   return (
     <>
@@ -87,7 +88,7 @@ export default function HomeCompletment({
           )}
 
           {/* Aucune metadata dispo (mode création seulement) */}
-          {!isEditing && metadata.length === 0 && (
+          {!isEditing && metadataForCompletement.length === 0 && (
             <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               Aucune metadata disponible pour un nouveau completement spatial.
             </div>
@@ -123,7 +124,7 @@ export default function HomeCompletment({
             <div className="grid gap-5 md:grid-cols-2">
               {!isEditing && (
                 <Repeted
-                  metadata={metadata}
+                  metadata={metadataForCompletement}
                   data={data}
                   setData={setData}
                   errors={errors}
@@ -141,6 +142,7 @@ export default function HomeCompletment({
                   disabled={typesDonnees.length === 0}
                 />
               </div>
+
             </div>
 
             <div className="mt-6 flex justify-end">
@@ -160,6 +162,7 @@ export default function HomeCompletment({
 
           {/* Liste */}
           <CompletementSpatialList
+            metadata={metadata}
             completements={completements}
             editingCompletementId={editingCompletement?.id ?? null}
             onEdit={handleEdit}

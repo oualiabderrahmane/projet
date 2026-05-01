@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $logiciel_utilise
  * @property string|null $version_logiciel
  * @property int|null $mode_extraction_id
+ * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property ModesExtraction|null $modes_extraction
@@ -35,7 +36,8 @@ class ExtractionAltimetrique extends Model
 
 	protected $casts = [
 		'metadata_id' => 'int',
-		'mode_extraction_id' => 'int'
+		'mode_extraction_id' => 'int',
+		'traite' => 'bool'
 	];
 
 	protected $fillable = [
@@ -45,7 +47,8 @@ class ExtractionAltimetrique extends Model
 		'resolution',
 		'logiciel_utilise',
 		'version_logiciel',
-		'mode_extraction_id'
+		'mode_extraction_id',
+		'traite'
 	];
 
 	public function metadata()

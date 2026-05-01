@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Digitalisation2d;
 use App\Models\Metadata;
@@ -21,18 +23,9 @@ class Digitalisation2DController extends Controller
         return ((int) $lastId) + 1;
     }
 
-    private function metadataRows(?int $includeMetadataId = null)
+    private function formatMetadataRows(Collection $metadataRows)
     {
-        return Metadata::with(['coupure.feuille', 'echelle'])
-            ->where(function ($query) use ($includeMetadataId) {
-                $query->whereDoesntHave('digitalisation2ds');
-
-                if ($includeMetadataId) {
-                    $query->orWhere('id', $includeMetadataId);
-                }
-            })
-            ->orderBy('id')
-            ->get()
+        return $metadataRows
             ->map(fn (Metadata $metadata) => [
                 'id' => $metadata->id,
                 'feuille_id' => $metadata->coupure?->feuille?->id,
@@ -43,6 +36,35 @@ class Digitalisation2DController extends Controller
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('extraction_altimetriques', fn ($relation) => $relation->where('traite', true))
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = Digitalisation2d::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
     }
 
     private function digitalisationRows()
@@ -67,14 +89,18 @@ class Digitalisation2DController extends Controller
                 'version_logiciel' => $digitalisation->version_logiciel,
                 'mode_realisation_id' => $digitalisation->mode_realisation_id,
                 'mode_realisation_nom' => $digitalisation->modes_realisation?->nom,
+                'traite' => (bool) $digitalisation->traite,
             ])
             ->values();
     }
 
     public function home()
     {
+        $metadata = $this->metadataCollections();
+
         return Inertia::render('Degitalisation/HomeDigitalisation', [
-            'metadata' => $this->metadataRows(),
+            'metadata' => $metadata['all'],
+            'metadataForDigitalisation' => $metadata['available'],
             'modesRealisation' => ModesRealisation::orderBy('nom')->get(['id', 'nom']),
             'digitalisations' => $this->digitalisationRows(),
         ]);
@@ -96,7 +122,13 @@ class Digitalisation2DController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'metadata_id' => 'required|exists:metadata,id|unique:digitalisation_2d,metadata_id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                'unique:digitalisation_2d,metadata_id',
+                Rule::exists('extraction_altimetrique', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+            ],
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'mode_realisation_id' => 'nullable|exists:modes_realisation,id',
@@ -106,6 +138,7 @@ class Digitalisation2DController extends Controller
             return Digitalisation2d::create([
                 'id' => $this->nextId(Digitalisation2d::class),
                 ...$validated,
+                'traite' => true,
             ]);
         });
 

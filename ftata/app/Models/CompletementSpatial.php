@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property int $metadata_id
  * @property int|null $type_donnees_id
+ * @property bool $traite
  *
  * @property Metadata $metadata
  * @property TypesDonneesSpatiale|null $types_donnees_spatiale
@@ -32,13 +33,13 @@ class CompletementSpatial extends Model
 	protected $casts = [
 		'id' => 'int',
 		'metadata_id' => 'int',
-
+		'traite' => 'bool',
 	];
 
 	protected $fillable = [
 		'id',
 		'metadata_id',
-
+		'traite',
 	];
 
 	public function metadata()

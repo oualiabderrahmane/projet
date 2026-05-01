@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -57,46 +58,72 @@ function uniqueTypeDonneesOptions(items) {
 }
 
 export default function CompletementSpatialList({
+  metadata = [],
   completements = [],
   editingCompletementId = null,
   onEdit,
 }) {
+  const rows = useMemo(() => {
+    const completementByMetadataId = new Map(
+      completements.map((completement) => [String(completement.metadata_id), completement])
+    );
+
+    return metadata.map((metadataRow) => {
+      const completement = completementByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: completement?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(completement),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        types_donnees_spatiales: completement?.types_donnees_spatiales ?? [],
+        traite: Boolean(completement?.traite),
+      };
+    });
+  }, [completements, metadata]);
+
   const [feuilleFilter, setFeuilleFilter] = useState("");
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [typeDonneesFilter, setTypeDonneesFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
 
   /* ── Options des selects ── */
 
   const feuilles = useMemo(
-    () => uniqueOptions(completements, "feuille_id", "feuille_nom"),
-    [completements]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? completements.filter(
+      ? rows.filter(
           (item) => String(item.feuille_id) === String(feuilleFilter)
         )
-      : completements;
+      : rows;
 
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [completements, feuilleFilter]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(completements, "echelle_id", "echelle_valeur"),
-    [completements]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const typesDonnees = useMemo(
-    () => uniqueTypeDonneesOptions(completements),
-    [completements]
+    () => uniqueTypeDonneesOptions(rows),
+    [rows]
   );
 
   /* ── Filtrage ── */
 
   const filteredCompletements = useMemo(() => {
-    return completements.filter((item) => {
+    return rows.filter((item) => {
       if (feuilleFilter && String(item.feuille_id) !== String(feuilleFilter))
         return false;
       if (coupureFilter && String(item.coupure_id) !== String(coupureFilter))
@@ -111,19 +138,23 @@ export default function CompletementSpatialList({
         );
         if (!match) return false;
       }
+      if (traiteFilter !== "" && String(Boolean(item.traite)) !== traiteFilter) {
+        return false;
+      }
 
       return true;
     });
-  }, [completements, feuilleFilter, coupureFilter, echelleFilter, typeDonneesFilter]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, rows, traiteFilter, typeDonneesFilter]);
 
   const hasFilters =
-    feuilleFilter || coupureFilter || echelleFilter || typeDonneesFilter;
+    feuilleFilter || coupureFilter || echelleFilter || typeDonneesFilter || traiteFilter;
 
   const resetFilters = () => {
     setFeuilleFilter("");
     setCoupureFilter("");
     setEchelleFilter("");
     setTypeDonneesFilter("");
+    setTraiteFilter("");
   };
 
   return (
@@ -135,8 +166,7 @@ export default function CompletementSpatialList({
             Complètements spatiaux créés
           </h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filteredCompletements.length} / {completements.length} complètement
-            {completements.length !== 1 ? "s" : ""}
+            {filteredCompletements.length} / {rows.length} metadata
           </p>
         </div>
 
@@ -152,7 +182,7 @@ export default function CompletementSpatialList({
       </div>
 
       {/* Filtres */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -207,6 +237,12 @@ export default function CompletementSpatialList({
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {/* Tableau */}
@@ -230,6 +266,9 @@ export default function CompletementSpatialList({
                 </th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">
                   Types de données
+                </th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                  Etat
                 </th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">
                   Action
@@ -262,12 +301,27 @@ export default function CompletementSpatialList({
                     </td>
                     <td className="px-3 py-2 text-gray-700">{typesLabel}</td>
                     <td className="px-3 py-2">
+                      {item.isPrepared ? (
+                        <TraiteBadge value={item.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A traiter
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(item)}
+                        onClick={() =>
+                          onEdit?.(item.isPrepared ? item : { ...item, id: null })
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : item.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

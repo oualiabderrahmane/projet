@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -32,6 +33,7 @@ function uniqueOptions(items, idKey, labelKey) {
 }
 
 export default function ExtractionList({
+  metadata = [],
   extractions = [],
   editingExtractionId = null,
   onEdit,
@@ -40,50 +42,84 @@ export default function ExtractionList({
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [modeFilter, setModeFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
+
+  const rows = useMemo(() => {
+    const extractionByMetadataId = new Map(
+      extractions.map((extraction) => [String(extraction.metadata_id), extraction])
+    );
+
+    return metadata.map((metadataRow) => {
+      const extraction = extractionByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: extraction?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(extraction),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        mnt: extraction?.mnt || "",
+        resolution: extraction?.resolution || "",
+        logiciel_utilise: extraction?.logiciel_utilise || "",
+        version_logiciel: extraction?.version_logiciel || "",
+        mode_extraction_id: extraction?.mode_extraction_id ?? null,
+        mode_extraction_nom: extraction?.mode_extraction_nom || "",
+        traite: Boolean(extraction?.traite),
+      };
+    });
+  }, [extractions, metadata]);
 
   const feuilles = useMemo(
-    () => uniqueOptions(extractions, "feuille_id", "feuille_nom"),
-    [extractions]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? extractions.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : extractions;
+      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
+      : rows;
 
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [extractions, feuilleFilter]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(extractions, "echelle_id", "echelle_valeur"),
-    [extractions]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const modes = useMemo(
-    () => uniqueOptions(extractions, "mode_extraction_id", "mode_extraction_nom"),
-    [extractions]
+    () => uniqueOptions(rows, "mode_extraction_id", "mode_extraction_nom"),
+    [rows]
   );
 
   const filteredExtractions = useMemo(() => {
-    return extractions.filter((extraction) => {
+    return rows.filter((extraction) => {
       if (feuilleFilter && String(extraction.feuille_id) !== String(feuilleFilter)) return false;
       if (coupureFilter && String(extraction.coupure_id) !== String(coupureFilter)) return false;
       if (echelleFilter && String(extraction.echelle_id) !== String(echelleFilter)) return false;
       if (modeFilter && String(extraction.mode_extraction_id) !== String(modeFilter)) {
         return false;
       }
+      if (traiteFilter !== "" && String(Boolean(extraction.traite)) !== traiteFilter) {
+        return false;
+      }
 
       return true;
     });
-  }, [coupureFilter, echelleFilter, extractions, feuilleFilter, modeFilter]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, modeFilter, rows, traiteFilter]);
 
-  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter;
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter || traiteFilter;
 
   const resetFilters = () => {
     setFeuilleFilter("");
     setCoupureFilter("");
     setEchelleFilter("");
     setModeFilter("");
+    setTraiteFilter("");
   };
 
   return (
@@ -92,7 +128,7 @@ export default function ExtractionList({
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Extractions creees</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filteredExtractions.length} / {extractions.length} extraction
+            {filteredExtractions.length} / {rows.length} metadata
           </p>
         </div>
 
@@ -107,7 +143,7 @@ export default function ExtractionList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -150,6 +186,12 @@ export default function ExtractionList({
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {filteredExtractions.length === 0 ? (
@@ -167,6 +209,7 @@ export default function ExtractionList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Logiciel</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Mode</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
@@ -194,12 +237,29 @@ export default function ExtractionList({
                       {extraction.mode_extraction_nom || "-"}
                     </td>
                     <td className="px-3 py-2">
+                      {extraction.isPrepared ? (
+                        <TraiteBadge value={extraction.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A traiter
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(extraction)}
+                        onClick={() =>
+                          onEdit?.(
+                            extraction.isPrepared ? extraction : { ...extraction, id: null }
+                          )
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : extraction.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

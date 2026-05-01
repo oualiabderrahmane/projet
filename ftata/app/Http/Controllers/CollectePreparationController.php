@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use App\Models\CollectePreparation;
 use App\Models\Metadata;
@@ -21,18 +22,9 @@ class CollectePreparationController extends Controller
         return ((int) $lastId) + 1;
     }
 
-    private function metadataRows(?int $includeMetadataId = null)
+    private function formatMetadataRows(Collection $metadataRows)
     {
-        return Metadata::with(['coupure.feuille', 'echelle'])
-            ->where(function ($query) use ($includeMetadataId) {
-                $query->whereDoesntHave('collecte_preparations');
-
-                if ($includeMetadataId) {
-                    $query->orWhere('id', $includeMetadataId);
-                }
-            })
-            ->orderBy('id')
-            ->get()
+        return $metadataRows
             ->map(fn (Metadata $metadata) => [
                 'id' => $metadata->id,
                 'feuille_id' => $metadata->coupure?->feuille?->id,
@@ -43,6 +35,34 @@ class CollectePreparationController extends Controller
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = CollectePreparation::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
     }
 
     private function preparationRows()
@@ -70,14 +90,18 @@ class CollectePreparationController extends Controller
                 'type_osm_nom' => $preparation->types_osm?->nom,
                 'geonames_annee_mise_a_jour' => $preparation->geonames_annee_mise_a_jour,
                 'gadm_version' => $preparation->gadm_version,
+                'traite' => (bool) $preparation->traite,
             ])
             ->values();
     }
 
     public function home()
     {
+        $metadata = $this->metadataCollections();
+
         return Inertia::render('Collect/HomePreparation', [
-            'metadata' => $this->metadataRows(),
+            'metadata' => $metadata['all'],
+            'metadataForPreparation' => $metadata['available'],
             'typesOsm' => TypesOsm::orderBy('nom')->get(['id', 'nom']),
             'preparations' => $this->preparationRows(),
         ]);
@@ -107,6 +131,7 @@ class CollectePreparationController extends Controller
             return CollectePreparation::create([
                 'id' => $this->nextId(CollectePreparation::class),
                 ...$validated,
+                'traite' => true,
             ]);
         });
 

@@ -30,7 +30,7 @@ function TextInput({ label, name, value, error, onChange }) {
   );
 }
 
-export default function Redaction({ metadata = [], redactions = [] }) {
+export default function Redaction({ metadata = [], metadataForRedaction = [], redactions = [] }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
   const [editingRedaction, setEditingRedaction] = useState(null);
@@ -45,7 +45,7 @@ export default function Redaction({ metadata = [], redactions = [] }) {
   });
 
   const handleEdit = (record) => {
-    setEditingRedaction(record);
+    setEditingRedaction(record?.id ? record : null);
     setData({
       feuille_id: String(record.feuille_id ?? ""),
       coupure_id: String(record.coupure_id ?? ""),
@@ -101,7 +101,7 @@ export default function Redaction({ metadata = [], redactions = [] }) {
             </div>
           )}
 
-          {metadata.length === 0 && (
+          {!isEditing && metadataForRedaction.length === 0 && (
             <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               Aucune metadata disponible pour une nouvelle redaction.
             </div>
@@ -110,7 +110,12 @@ export default function Redaction({ metadata = [], redactions = [] }) {
           <form onSubmit={handleSubmit} className="card">
             <div className="grid gap-5 md:grid-cols-2">
               {!isEditing && (
-                <Repeted metadata={metadata} data={data} setData={setData} errors={errors} />
+                <Repeted
+                  metadata={metadataForRedaction}
+                  data={data}
+                  setData={setData}
+                  errors={errors}
+                />
               )}
 
               <TextInput
@@ -128,6 +133,7 @@ export default function Redaction({ metadata = [], redactions = [] }) {
                 error={errors.version_logiciel}
                 onChange={setData}
               />
+
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -142,7 +148,7 @@ export default function Redaction({ metadata = [], redactions = [] }) {
               )}
               <button
                 type="submit"
-                disabled={processing || (!isEditing && metadata.length === 0)}
+                disabled={processing || (!isEditing && metadataForRedaction.length === 0)}
                 className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {processing ? "Enregistrement..." : isEditing ? "Mettre a jour" : "Enregistrer"}
@@ -151,6 +157,7 @@ export default function Redaction({ metadata = [], redactions = [] }) {
           </form>
 
           <RedactionList
+            metadata={metadata}
             redactions={redactions}
             editingRedactionId={editingRedaction?.id ?? null}
             onEdit={handleEdit}

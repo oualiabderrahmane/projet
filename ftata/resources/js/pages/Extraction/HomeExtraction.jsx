@@ -6,6 +6,7 @@ import ExtractionList from "./ExtractionList";
 export default function HomeExtraction({
   extractions = [],
   metadata = [],
+  metadataForExtraction = [],
   modesExtraction = [],
 }) {
   const { props } = usePage();
@@ -36,13 +37,14 @@ export default function HomeExtraction({
 
           <div className="space-y-6">
             <ExtractionCreate
-              metadata={metadata}
+              metadata={metadataForExtraction}
               modesExtraction={modesExtraction}
               extractionRecord={selectedExtraction}
               onCancelEdit={() => setSelectedExtraction(null)}
               onSaved={() => setSelectedExtraction(null)}
             />
             <ExtractionList
+              metadata={metadata}
               extractions={extractions}
               editingExtractionId={selectedExtraction?.id}
               onEdit={handleEdit}

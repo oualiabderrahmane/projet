@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $mode_realisation_id
  * @property string|null $tolerance_topologique
  * @property int|null $equipement_id
+ * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property ModeRealisation|null $mode_realisation
@@ -37,7 +38,8 @@ class TraitementVecteur extends Model
 	protected $casts = [
 		'metadata_id' => 'int',
 		'mode_realisation_id' => 'int',
-		'equipement_id' => 'int'
+		'equipement_id' => 'int',
+		'traite' => 'bool'
 	];
 
 	protected $fillable = [
@@ -47,7 +49,8 @@ class TraitementVecteur extends Model
 		'version_logiciel',
 		'mode_realisation_id',
 		'tolerance_topologique',
-		'equipement_id'
+		'equipement_id',
+		'traite'
 	];
 
 	public function metadata()

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Models\ControleCartographique;
 use App\Models\Metadata;
@@ -25,6 +27,7 @@ class ControleCartographiqueController extends Controller
     public function create()
     {
         $metadata = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('redaction_cartographiques', fn ($query) => $query->where('traite', true))
             ->orderBy('id')
             ->get()
             ->map(fn (Metadata $metadata) => [
@@ -50,7 +53,9 @@ class ControleCartographiqueController extends Controller
                 'metadata_id' => $controle->metadata_id,
                 'feuille_nom' => $controle->metadata?->coupure?->feuille?->nom,
                 'coupure_nom' => $controle->metadata?->coupure?->nom,
+                'type_controle_id' => $controle->type_controle_id,
                 'type_controle_nom' => $controle->types_controle?->nom,
+                'niveau_controle_id' => $controle->niveau_controle_id,
                 'niveau_controle_nom' => $controle->niveaux_controle?->nom,
                 'date_controle' => $controle->date_controle?->format('Y-m-d'),
                 'date_edition' => $controle->date_edition?->format('Y-m-d'),
@@ -59,7 +64,7 @@ class ControleCartographiqueController extends Controller
 
         return Inertia::render('Redaction/Controle', [
             'metadata' => $metadata,
-            'typesControle' => TypesControle::orderBy('nom')->get(['id', 'nom']),
+            'typesControle' => TypesControle::orderBy('id')->get(['id', 'nom']),
             'niveauxControle' => NiveauxControle::orderBy('nom')->get(['id', 'nom']),
             'controlesEffectues' => $controlesEffectues,
         ]);
@@ -77,40 +82,39 @@ class ControleCartographiqueController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'metadata_id' => 'required|exists:metadata,id',
-            'type_controle_id' => 'nullable|exists:types_controle,id',
-            'niveau_controle_id' => 'nullable|exists:niveaux_controle,id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                Rule::exists('redaction_cartographique', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+            ],
+            'type_controle_id' => 'required|exists:types_controle,id',
+            'niveau_controle_id' => 'required|exists:niveaux_controle,id',
             'date_controle' => 'nullable|date',
             'date_edition' => 'nullable|date',
         ]);
 
         $record = DB::transaction(function () use ($validated) {
-            $record = ControleCartographique::where('metadata_id', $validated['metadata_id'])->first();
-            $dateEdition = $validated['date_edition'] ?? null;
+            $existingControle = ControleCartographique::where('metadata_id', $validated['metadata_id'])
+                ->where('type_controle_id', $validated['type_controle_id'])
+                ->first();
 
-            $payload = [
-                'metadata_id' => $validated['metadata_id'],
-                'type_controle_id' => $validated['type_controle_id'] ?? null,
-                'niveau_controle_id' => $validated['niveau_controle_id'] ?? null,
-                'date_controle' => $validated['date_controle'] ?? null,
-            ];
-
-            if (!$record) {
-                $record = new ControleCartographique([
-                    ...$payload,
-                    'date_edition' => $dateEdition,
+            if ($existingControle) {
+                throw ValidationException::withMessages([
+                    'type_controle_id' => 'Ce controle est deja sauvegarde et ne peut pas etre modifie.',
                 ]);
-                $record->id = $this->nextId(ControleCartographique::class);
-                $record->save();
-
-                return $record;
             }
 
-            if ($record->date_edition?->format('Y-m-d') !== $dateEdition) {
-                $payload['date_edition'] = $dateEdition;
-            }
+            $record = new ControleCartographique([
+                'metadata_id' => $validated['metadata_id'],
+                'type_controle_id' => $validated['type_controle_id'],
+                'niveau_controle_id' => $validated['niveau_controle_id'],
+                'date_controle' => $validated['date_controle'] ?? null,
+                'date_edition' => $validated['date_edition'] ?? null,
+            ]);
 
-            $record->update($payload);
+            $record->id = $this->nextId(ControleCartographique::class);
+            $record->save();
 
             return $record;
         });
@@ -131,18 +135,11 @@ class ControleCartographiqueController extends Controller
 
     public function update(Request $request, $id)
     {
-        $record = ControleCartographique::findOrFail($id);
+        ControleCartographique::findOrFail($id);
 
-        $validated = $request->validate([
-            'type_controle_id' => 'nullable|exists:types_controle,id',
-            'niveau_controle_id' => 'nullable|exists:niveaux_controle,id',
-            'date_controle' => 'nullable|date',
-            'date_edition' => 'nullable|date',
+        throw ValidationException::withMessages([
+            'controle' => 'Un controle sauvegarde ne peut pas etre modifie.',
         ]);
-
-        $record->update($validated);
-
-        return $record;
     }
 
     public function destroy($id)

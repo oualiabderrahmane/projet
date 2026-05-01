@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $version_logiciel
  * @property int|null $mode_realisation_id
  * @property int|null $equipement_id
+ * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property ModesRealisation|null $modes_realisation
@@ -37,7 +38,8 @@ class Digitalisation2d extends Model
 		'id' => 'int',
 		'metadata_id' => 'int',
 		'mode_realisation_id' => 'int',
-		'equipement_id' => 'int'
+		'equipement_id' => 'int',
+		'traite' => 'bool'
 	];
 
 	protected $fillable = [
@@ -46,7 +48,8 @@ class Digitalisation2d extends Model
 		'logiciel_utilise',
 		'version_logiciel',
 		'mode_realisation_id',
-		'equipement_id'
+		'equipement_id',
+		'traite'
 	];
 
 	public function metadata()

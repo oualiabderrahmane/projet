@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\ExtractionAltimetrique;
 use App\Models\Metadata;
@@ -21,18 +23,9 @@ class ExtractionAltimetriqueController extends Controller
         return ((int) $lastId) + 1;
     }
 
-    private function metadataRows(?int $includeMetadataId = null)
+    private function formatMetadataRows(Collection $metadataRows)
     {
-        return Metadata::with(['coupure.feuille', 'echelle'])
-            ->where(function ($query) use ($includeMetadataId) {
-                $query->whereDoesntHave('extraction_altimetriques');
-
-                if ($includeMetadataId) {
-                    $query->orWhere('id', $includeMetadataId);
-                }
-            })
-            ->orderBy('id')
-            ->get()
+        return $metadataRows
             ->map(fn (Metadata $metadata) => [
                 'id' => $metadata->id,
                 'feuille_id' => $metadata->coupure?->feuille?->id,
@@ -43,6 +36,35 @@ class ExtractionAltimetriqueController extends Controller
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('collecte_preparations', fn ($relation) => $relation->where('traite', true))
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = ExtractionAltimetrique::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
     }
 
     private function extractionRows()
@@ -69,14 +91,18 @@ class ExtractionAltimetriqueController extends Controller
                 'version_logiciel' => $extraction->version_logiciel,
                 'mode_extraction_id' => $extraction->mode_extraction_id,
                 'mode_extraction_nom' => $extraction->modes_extraction?->nom,
+                'traite' => (bool) $extraction->traite,
             ])
             ->values();
     }
 
     public function home()
     {
+        $metadata = $this->metadataCollections();
+
         return Inertia::render('Extraction/HomeExtraction', [
-            'metadata' => $this->metadataRows(),
+            'metadata' => $metadata['all'],
+            'metadataForExtraction' => $metadata['available'],
             'modesExtraction' => ModesExtraction::orderBy('nom')->get(['id', 'nom']),
             'extractions' => $this->extractionRows(),
         ]);
@@ -90,7 +116,13 @@ class ExtractionAltimetriqueController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'metadata_id' => 'required|exists:metadata,id|unique:extraction_altimetrique,metadata_id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                'unique:extraction_altimetrique,metadata_id',
+                Rule::exists('collecte_preparation', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+            ],
             'mnt' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'logiciel_utilise' => 'nullable|string|max:100',
@@ -102,6 +134,7 @@ class ExtractionAltimetriqueController extends Controller
             return ExtractionAltimetrique::create([
                 'id' => $this->nextId(ExtractionAltimetrique::class),
                 ...$validated,
+                'traite' => true,
             ]);
         });
 

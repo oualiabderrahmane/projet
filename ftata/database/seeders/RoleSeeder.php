@@ -16,6 +16,7 @@ class RoleSeeder extends Seeder
             'completment_spatial',
             'traitment_vecteur',
             'redaction',
+            'chef',
         ];
 
         foreach ($roles as $role) {

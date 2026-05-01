@@ -82,11 +82,12 @@ export default function Repeted({ metadata = [], data, setData, errors = {} }) {
     const rowsForCoupure = nextCoupureId
       ? rowsForFeuille.filter((item) => idValue(item.coupure_id) === nextCoupureId)
       : [];
+    const nextMetadataId = rowsForCoupure.length > 0 ? idValue(rowsForCoupure[0].id) : "";
 
     setSelection({
       feuille_id: value,
       coupure_id: nextCoupureId,
-      metadata_id: rowsForCoupure.length > 0 ? idValue(rowsForCoupure[0].id) : "",
+      metadata_id: nextMetadataId,
     });
   };
 
@@ -94,10 +95,11 @@ export default function Repeted({ metadata = [], data, setData, errors = {} }) {
     const rowsForCoupure = metadata.filter(
       (item) => idValue(item.feuille_id) === data.feuille_id && idValue(item.coupure_id) === value
     );
+    const nextMetadataId = rowsForCoupure.length > 0 ? idValue(rowsForCoupure[0].id) : "";
 
     setSelection({
       coupure_id: value,
-      metadata_id: rowsForCoupure.length > 0 ? idValue(rowsForCoupure[0].id) : "",
+      metadata_id: nextMetadataId,
     });
   };
 

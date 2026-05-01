@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -32,6 +33,7 @@ function uniqueOptions(items, idKey, labelKey) {
 }
 
 export default function TraitmentList({
+  metadata = [],
   traitements = [],
   editingTraitementId = null,
   onEdit,
@@ -40,50 +42,83 @@ export default function TraitmentList({
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [modeFilter, setModeFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
+
+  const rows = useMemo(() => {
+    const traitementByMetadataId = new Map(
+      traitements.map((traitement) => [String(traitement.metadata_id), traitement])
+    );
+
+    return metadata.map((metadataRow) => {
+      const traitement = traitementByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: traitement?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(traitement),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        logiciel_utilise: traitement?.logiciel_utilise || "",
+        version_logiciel: traitement?.version_logiciel || "",
+        mode_realisation_id: traitement?.mode_realisation_id ?? null,
+        mode_realisation_nom: traitement?.mode_realisation_nom || "",
+        tolerance_topologique: traitement?.tolerance_topologique || "",
+        traite: Boolean(traitement?.traite),
+      };
+    });
+  }, [metadata, traitements]);
 
   const feuilles = useMemo(
-    () => uniqueOptions(traitements, "feuille_id", "feuille_nom"),
-    [traitements]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? traitements.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : traitements;
+      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
+      : rows;
 
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [feuilleFilter, traitements]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(traitements, "echelle_id", "echelle_valeur"),
-    [traitements]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const modes = useMemo(
-    () => uniqueOptions(traitements, "mode_realisation_id", "mode_realisation_nom"),
-    [traitements]
+    () => uniqueOptions(rows, "mode_realisation_id", "mode_realisation_nom"),
+    [rows]
   );
 
   const filteredTraitements = useMemo(() => {
-    return traitements.filter((traitement) => {
+    return rows.filter((traitement) => {
       if (feuilleFilter && String(traitement.feuille_id) !== String(feuilleFilter)) return false;
       if (coupureFilter && String(traitement.coupure_id) !== String(coupureFilter)) return false;
       if (echelleFilter && String(traitement.echelle_id) !== String(echelleFilter)) return false;
       if (modeFilter && String(traitement.mode_realisation_id) !== String(modeFilter)) {
         return false;
       }
+      if (traiteFilter !== "" && String(Boolean(traitement.traite)) !== traiteFilter) {
+        return false;
+      }
 
       return true;
     });
-  }, [coupureFilter, echelleFilter, feuilleFilter, modeFilter, traitements]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, modeFilter, rows, traiteFilter]);
 
-  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter;
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter || traiteFilter;
 
   const resetFilters = () => {
     setFeuilleFilter("");
     setCoupureFilter("");
     setEchelleFilter("");
     setModeFilter("");
+    setTraiteFilter("");
   };
 
   return (
@@ -92,7 +127,7 @@ export default function TraitmentList({
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Traitements creees</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filteredTraitements.length} / {traitements.length} traitement
+            {filteredTraitements.length} / {rows.length} metadata
           </p>
         </div>
 
@@ -107,7 +142,7 @@ export default function TraitmentList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -150,6 +185,12 @@ export default function TraitmentList({
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {filteredTraitements.length === 0 ? (
@@ -166,6 +207,7 @@ export default function TraitmentList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Mode</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Tolerance</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
@@ -194,12 +236,29 @@ export default function TraitmentList({
                       {traitement.tolerance_topologique || "-"}
                     </td>
                     <td className="px-3 py-2">
+                      {traitement.isPrepared ? (
+                        <TraiteBadge value={traitement.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A traiter
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(traitement)}
+                        onClick={() =>
+                          onEdit?.(
+                            traitement.isPrepared ? traitement : { ...traitement, id: null }
+                          )
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : traitement.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

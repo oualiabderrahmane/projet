@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChefController;
 use App\Http\Controllers\CollectePreparationController;
 use App\Http\Controllers\CompletementSpatialController;
 use App\Http\Controllers\ControleCartographiqueController;
@@ -38,6 +39,11 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('admin.users');
     Route::put('/users/{user}/password', [UserController::class, 'updatePassword'])
         ->name('admin.users.password');
+});
+
+Route::middleware(['auth', 'role:chef,admin'])->group(function () {
+    Route::get('/chef', [ChefController::class, 'home'])
+        ->name('chef.home');
 });
 
 Route::middleware(['auth', 'role:collect'])->group(function () {

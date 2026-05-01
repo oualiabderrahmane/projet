@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -32,6 +33,7 @@ function uniqueOptions(items, idKey, labelKey) {
 }
 
 export default function DegitalisationList({
+  metadata = [],
   digitalisations = [],
   editingDigitalisationId = null,
   onEdit,
@@ -40,50 +42,82 @@ export default function DegitalisationList({
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [modeFilter, setModeFilter] = useState("");
+  const [traiteFilter, setTraiteFilter] = useState("");
+
+  const rows = useMemo(() => {
+    const digitalisationByMetadataId = new Map(
+      digitalisations.map((digitalisation) => [String(digitalisation.metadata_id), digitalisation])
+    );
+
+    return metadata.map((metadataRow) => {
+      const digitalisation = digitalisationByMetadataId.get(String(metadataRow.id));
+
+      return {
+        id: digitalisation?.id ?? `metadata-${metadataRow.id}`,
+        metadata_id: metadataRow.id,
+        isPrepared: Boolean(digitalisation),
+        feuille_id: metadataRow.feuille_id,
+        feuille_nom: metadataRow.feuille_nom,
+        coupure_id: metadataRow.coupure_id,
+        coupure_nom: metadataRow.coupure_nom,
+        echelle_id: metadataRow.echelle_id,
+        echelle_valeur: metadataRow.echelle_valeur,
+        logiciel_utilise: digitalisation?.logiciel_utilise || "",
+        version_logiciel: digitalisation?.version_logiciel || "",
+        mode_realisation_id: digitalisation?.mode_realisation_id ?? null,
+        mode_realisation_nom: digitalisation?.mode_realisation_nom || "",
+        traite: Boolean(digitalisation?.traite),
+      };
+    });
+  }, [digitalisations, metadata]);
 
   const feuilles = useMemo(
-    () => uniqueOptions(digitalisations, "feuille_id", "feuille_nom"),
-    [digitalisations]
+    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
+    [rows]
   );
 
   const coupures = useMemo(() => {
     const source = feuilleFilter
-      ? digitalisations.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : digitalisations;
+      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
+      : rows;
 
     return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [digitalisations, feuilleFilter]);
+  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
-    () => uniqueOptions(digitalisations, "echelle_id", "echelle_valeur"),
-    [digitalisations]
+    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
+    [rows]
   );
 
   const modes = useMemo(
-    () => uniqueOptions(digitalisations, "mode_realisation_id", "mode_realisation_nom"),
-    [digitalisations]
+    () => uniqueOptions(rows, "mode_realisation_id", "mode_realisation_nom"),
+    [rows]
   );
 
   const filteredDigitalisations = useMemo(() => {
-    return digitalisations.filter((digitalisation) => {
+    return rows.filter((digitalisation) => {
       if (feuilleFilter && String(digitalisation.feuille_id) !== String(feuilleFilter)) return false;
       if (coupureFilter && String(digitalisation.coupure_id) !== String(coupureFilter)) return false;
       if (echelleFilter && String(digitalisation.echelle_id) !== String(echelleFilter)) return false;
       if (modeFilter && String(digitalisation.mode_realisation_id) !== String(modeFilter)) {
         return false;
       }
+      if (traiteFilter !== "" && String(Boolean(digitalisation.traite)) !== traiteFilter) {
+        return false;
+      }
 
       return true;
     });
-  }, [coupureFilter, digitalisations, echelleFilter, feuilleFilter, modeFilter]);
+  }, [coupureFilter, echelleFilter, feuilleFilter, modeFilter, rows, traiteFilter]);
 
-  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter;
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || modeFilter || traiteFilter;
 
   const resetFilters = () => {
     setFeuilleFilter("");
     setCoupureFilter("");
     setEchelleFilter("");
     setModeFilter("");
+    setTraiteFilter("");
   };
 
   return (
@@ -92,7 +126,7 @@ export default function DegitalisationList({
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Digitalisations creees</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {filteredDigitalisations.length} / {digitalisations.length} digitalisation
+            {filteredDigitalisations.length} / {rows.length} metadata
           </p>
         </div>
 
@@ -107,7 +141,7 @@ export default function DegitalisationList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SelectFilter
           label="Feuille"
           value={feuilleFilter}
@@ -150,6 +184,12 @@ export default function DegitalisationList({
             </option>
           ))}
         </SelectFilter>
+
+        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les etats</option>
+          <option value="true">Traite</option>
+          <option value="false">Non traite</option>
+        </SelectFilter>
       </div>
 
       {filteredDigitalisations.length === 0 ? (
@@ -165,6 +205,7 @@ export default function DegitalisationList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Logiciel</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Mode</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
               </tr>
             </thead>
@@ -197,12 +238,31 @@ export default function DegitalisationList({
                       {digitalisation.mode_realisation_nom || "-"}
                     </td>
                     <td className="px-3 py-2">
+                      {digitalisation.isPrepared ? (
+                        <TraiteBadge value={digitalisation.traite} />
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                          A traiter
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <button
                         type="button"
-                        onClick={() => onEdit?.(digitalisation)}
+                        onClick={() =>
+                          onEdit?.(
+                            digitalisation.isPrepared
+                              ? digitalisation
+                              : { ...digitalisation, id: null }
+                          )
+                        }
                         className="font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isEditing ? "En modification" : "Modifier"}
+                        {isEditing
+                          ? "En modification"
+                          : digitalisation.isPrepared
+                            ? "Modifier"
+                            : "Traiter"}
                       </button>
                     </td>
                   </tr>

@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $logiciel_utilise
  * @property string|null $version_logiciel
  * @property int|null $equipement_id
+ * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property Equipement|null $equipement
@@ -31,14 +32,16 @@ class RedactionCartographique extends Model
 
 	protected $casts = [
 		'metadata_id' => 'int',
-		'equipement_id' => 'int'
+		'equipement_id' => 'int',
+		'traite' => 'bool'
 	];
 
 	protected $fillable = [
 		'metadata_id',
 		'logiciel_utilise',
 		'version_logiciel',
-		'equipement_id'
+		'equipement_id',
+		'traite'
 	];
 
 	public function metadata()

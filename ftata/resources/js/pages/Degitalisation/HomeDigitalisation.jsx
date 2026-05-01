@@ -6,6 +6,7 @@ import Digitalisation from "./Digitalisation";
 export default function HomeDigitalisation({
   digitalisations = [],
   metadata = [],
+  metadataForDigitalisation = [],
   modesRealisation = [],
 }) {
   const { props } = usePage();
@@ -36,13 +37,14 @@ export default function HomeDigitalisation({
 
           <div className="space-y-6">
             <Digitalisation
-              metadata={metadata}
+              metadata={metadataForDigitalisation}
               modesRealisation={modesRealisation}
               digitalisationRecord={selectedDigitalisation}
               onCancelEdit={() => setSelectedDigitalisation(null)}
               onSaved={() => setSelectedDigitalisation(null)}
             />
             <DegitalisationList
+              metadata={metadata}
               digitalisations={digitalisations}
               editingDigitalisationId={selectedDigitalisation?.id}
               onEdit={handleEdit}

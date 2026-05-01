@@ -64,11 +64,11 @@ private function metadataRows(Request $request)
         })
 
         ->when($filters['pays_id'] ?? null, function ($query, $paysId) {
-            $query->where('pay_id', $paysId);
+            $query->where('pays_id', $paysId);
         })
 
         ->when($filters['systeme_reference_id'] ?? null, function ($query, $systemeId) {
-            $query->where('systemes_reference_id', $systemeId);
+            $query->where('systeme_reference_id', $systemeId);
         })
 
         ->when($filters['type_releve_id'] ?? null, function ($query, $typeReleveId) {
@@ -178,26 +178,28 @@ public function byCoupure($coupure_id)
     ]);
 
     $metadata = DB::transaction(function () use ($validated) {
+        $feuilleNom = trim($validated['feuille_nom']);
+        $coupureNom = trim($validated['coupure_nom']);
 
         // 1. Check or create Feuille
-        $feuille = Feuille::where('nom', $validated['feuille_nom'])->first();
+        $feuille = Feuille::where('nom', $feuilleNom)->first();
 
         if (!$feuille) {
             $feuille = Feuille::create([
                 'id' => $this->nextId(Feuille::class),
-                'nom' => $validated['feuille_nom']
+                'nom' => $feuilleNom
             ]);
         }
 
         // 2. Check or create Coupure under this Feuille
-        $coupure = Coupure::where('nom', $validated['coupure_nom'])
+        $coupure = Coupure::where('nom', $coupureNom)
             ->where('feuille_id', $feuille->id)
             ->first();
 
         if (!$coupure) {
             $coupure = Coupure::create([
                 'id' => $this->nextId(Coupure::class),
-                'nom' => $validated['coupure_nom'],
+                'nom' => $coupureNom,
                 'feuille_id' => $feuille->id
             ]);
         }
@@ -236,23 +238,25 @@ public function update(Request $request, Metadata $metadata)
     ]);
 
     DB::transaction(function () use ($validated, $metadata) {
-        $feuille = Feuille::where('nom', $validated['feuille_nom'])->first();
+        $feuilleNom = trim($validated['feuille_nom']);
+        $coupureNom = trim($validated['coupure_nom']);
+        $feuille = Feuille::where('nom', $feuilleNom)->first();
 
         if (!$feuille) {
             $feuille = Feuille::create([
                 'id' => $this->nextId(Feuille::class),
-                'nom' => $validated['feuille_nom']
+                'nom' => $feuilleNom
             ]);
         }
 
-        $coupure = Coupure::where('nom', $validated['coupure_nom'])
+        $coupure = Coupure::where('nom', $coupureNom)
             ->where('feuille_id', $feuille->id)
             ->first();
 
         if (!$coupure) {
             $coupure = Coupure::create([
                 'id' => $this->nextId(Coupure::class),
-                'nom' => $validated['coupure_nom'],
+                'nom' => $coupureNom,
                 'feuille_id' => $feuille->id
             ]);
         }

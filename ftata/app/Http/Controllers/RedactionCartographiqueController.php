@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Metadata;
 use App\Models\RedactionCartographique;
@@ -20,12 +22,9 @@ class RedactionCartographiqueController extends Controller
         return ((int) $lastId) + 1;
     }
 
-    private function pageData(): array
+    private function formatMetadataRows(Collection $metadataRows)
     {
-        $metadata = Metadata::with(['coupure.feuille', 'echelle'])
-            ->whereDoesntHave('redaction_cartographiques')
-            ->orderBy('id')
-            ->get()
+        return $metadataRows
             ->map(fn (Metadata $metadata) => [
                 'id' => $metadata->id,
                 'feuille_id' => $metadata->coupure?->feuille?->id,
@@ -36,6 +35,40 @@ class RedactionCartographiqueController extends Controller
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('traitement_vecteurs', fn ($query) => $query->where('traite', true))
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = RedactionCartographique::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
+    }
+
+    private function pageData(): array
+    {
+        $metadata = $this->metadataCollections();
 
         $redactions = RedactionCartographique::with(['metadata.coupure.feuille', 'metadata.echelle'])
             ->orderByDesc('id')
@@ -51,11 +84,13 @@ class RedactionCartographiqueController extends Controller
                 'echelle_valeur' => $record->metadata?->echelle?->valeur,
                 'logiciel_utilise' => $record->logiciel_utilise,
                 'version_logiciel' => $record->version_logiciel,
+                'traite' => (bool) $record->traite,
             ])
             ->values();
 
         return [
-            'metadata' => $metadata,
+            'metadata' => $metadata['all'],
+            'metadataForRedaction' => $metadata['available'],
             'redactions' => $redactions,
         ];
     }
@@ -78,7 +113,13 @@ class RedactionCartographiqueController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'metadata_id' => 'required|exists:metadata,id|unique:redaction_cartographique,metadata_id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                'unique:redaction_cartographique,metadata_id',
+                Rule::exists('traitement_vecteur', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+            ],
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
         ]);
@@ -87,6 +128,7 @@ class RedactionCartographiqueController extends Controller
             return RedactionCartographique::create([
                 'id' => $this->nextId(RedactionCartographique::class),
                 ...$validated,
+                'traite' => true,
             ]);
         });
 

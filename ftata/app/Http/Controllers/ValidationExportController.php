@@ -14,6 +14,7 @@ use App\Models\TraitementVecteur;
 use App\Models\ValidationExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ValidationExportController extends Controller
@@ -31,6 +32,8 @@ class ValidationExportController extends Controller
     private function metadataRows()
     {
         return Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('redaction_cartographiques', fn ($query) => $query->where('traite', true))
+            ->whereHas('controle_cartographiques')
             ->orderBy('id')
             ->get()
             ->map(fn (Metadata $metadata) => [
@@ -52,6 +55,8 @@ class ValidationExportController extends Controller
             'validation_exports',
             'coupure_fiches.validation_export',
         ])
+            ->whereHas('redaction_cartographiques', fn ($query) => $query->where('traite', true))
+            ->whereHas('controle_cartographiques')
             ->orderBy('id')
             ->get()
             ->map(function (Metadata $metadata) {
@@ -82,7 +87,13 @@ class ValidationExportController extends Controller
         $validated = $request->validate([
             'feuille_id' => 'required|exists:feuilles,id',
             'coupure_id' => 'required|exists:coupures,id',
-            'metadata_id' => 'required|exists:metadata,id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                Rule::exists('redaction_cartographique', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+                Rule::exists('controle_cartographique', 'metadata_id'),
+            ],
             'emplacement' => 'nullable|string|max:255',
         ]);
 

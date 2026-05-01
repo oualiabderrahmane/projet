@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Metadata;
 use App\Models\ModeRealisation;
@@ -11,11 +13,26 @@ use App\Models\TraitementVecteur;
 
 class TraitementVecteurController extends Controller
 {
+    private const TRAITEMENT_MODES = [
+        'Intégration des données',
+        'Traitement des données',
+        'Intégration et traitement',
+    ];
+
+    private const TRAITEMENT_MODE_RENAMES = [
+        'Integration' => 'Intégration des données',
+        'Traitement' => 'Traitement des données',
+        'Les deux' => 'Intégration et traitement',
+    ];
+
     private function pageData(): array
     {
+        $metadata = $this->metadataCollections();
+
         return [
-            'metadata' => $this->metadataRows(),
-            'modesRealisation' => ModeRealisation::orderBy('nom')->get(['id', 'nom']),
+            'metadata' => $metadata['all'],
+            'metadataForTraitement' => $metadata['available'],
+            'modesRealisation' => $this->traitementModeRows(),
             'traitements' => $this->traitementRows(),
         ];
     }
@@ -30,18 +47,49 @@ class TraitementVecteurController extends Controller
         return ((int) $lastId) + 1;
     }
 
-    private function metadataRows(?int $includeMetadataId = null)
+    private function ensureTraitementModes(): void
     {
-        return Metadata::with(['coupure.feuille', 'echelle'])
-            ->where(function ($query) use ($includeMetadataId) {
-                $query->whereDoesntHave('traitement_vecteurs');
+        DB::transaction(function () {
+            foreach (self::TRAITEMENT_MODE_RENAMES as $oldName => $newName) {
+                ModeRealisation::where('nom', $oldName)->update(['nom' => $newName]);
+            }
 
-                if ($includeMetadataId) {
-                    $query->orWhere('id', $includeMetadataId);
+            $nextId = $this->nextId(ModeRealisation::class);
+
+            foreach (self::TRAITEMENT_MODES as $mode) {
+                if (ModeRealisation::where('nom', $mode)->exists()) {
+                    continue;
                 }
-            })
-            ->orderBy('id')
-            ->get()
+
+                $record = new ModeRealisation();
+                $record->id = $nextId++;
+                $record->nom = $mode;
+                $record->save();
+            }
+        });
+    }
+
+    private function traitementModeRows()
+    {
+        $this->ensureTraitementModes();
+
+        return ModeRealisation::whereIn('nom', self::TRAITEMENT_MODES)
+            ->get(['id', 'nom'])
+            ->sortBy(fn (ModeRealisation $mode) => array_search($mode->nom, self::TRAITEMENT_MODES, true))
+            ->values();
+    }
+
+    private function modeRealisationRule()
+    {
+        $this->ensureTraitementModes();
+
+        return Rule::exists('mode_realisation', 'id')
+            ->where(fn ($query) => $query->whereIn('nom', self::TRAITEMENT_MODES));
+    }
+
+    private function formatMetadataRows(Collection $metadataRows)
+    {
+        return $metadataRows
             ->map(fn (Metadata $metadata) => [
                 'id' => $metadata->id,
                 'feuille_id' => $metadata->coupure?->feuille?->id,
@@ -52,6 +100,35 @@ class TraitementVecteurController extends Controller
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
             ->values();
+    }
+
+    private function metadataCollections(?int $includeMetadataId = null): array
+    {
+        $all = Metadata::with(['coupure.feuille', 'echelle'])
+            ->whereHas('completement_spatials', fn ($relation) => $relation->where('traite', true))
+            ->orderBy('id')
+            ->get();
+
+        $usedMetadataIds = TraitementVecteur::query()
+            ->pluck('metadata_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $usedLookup = array_fill_keys($usedMetadataIds, true);
+
+        $available = $all
+            ->filter(function (Metadata $metadata) use ($includeMetadataId, $usedLookup) {
+                if ($includeMetadataId && (int) $metadata->id === $includeMetadataId) {
+                    return true;
+                }
+
+                return !isset($usedLookup[(int) $metadata->id]);
+            })
+            ->values();
+
+        return [
+            'all' => $this->formatMetadataRows($all),
+            'available' => $this->formatMetadataRows($available),
+        ];
     }
 
     private function traitementRows()
@@ -77,6 +154,7 @@ class TraitementVecteurController extends Controller
                 'mode_realisation_id' => $traitement->mode_realisation_id,
                 'mode_realisation_nom' => $traitement->mode_realisation?->nom,
                 'tolerance_topologique' => $traitement->tolerance_topologique,
+                'traite' => (bool) $traitement->traite,
             ])
             ->values();
     }
@@ -99,10 +177,16 @@ class TraitementVecteurController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'metadata_id' => 'required|exists:metadata,id|unique:traitement_vecteur,metadata_id',
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                'unique:traitement_vecteur,metadata_id',
+                Rule::exists('completement_spatial', 'metadata_id')
+                    ->where(fn ($query) => $query->where('traite', true)),
+            ],
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
-            'mode_realisation_id' => 'nullable|exists:mode_realisation,id',
+            'mode_realisation_id' => ['required', $this->modeRealisationRule()],
             'tolerance_topologique' => 'nullable|string|max:100',
         ]);
 
@@ -110,6 +194,7 @@ class TraitementVecteurController extends Controller
             return TraitementVecteur::create([
                 'id' => $this->nextId(TraitementVecteur::class),
                 ...$validated,
+                'traite' => true,
             ]);
         });
 
@@ -135,7 +220,7 @@ class TraitementVecteurController extends Controller
             'metadata_id' => 'required|exists:metadata,id|unique:traitement_vecteur,metadata_id,' . $record->id,
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
-            'mode_realisation_id' => 'nullable|exists:mode_realisation,id',
+            'mode_realisation_id' => ['required', $this->modeRealisationRule()],
             'tolerance_topologique' => 'nullable|string|max:100',
         ]);
 
