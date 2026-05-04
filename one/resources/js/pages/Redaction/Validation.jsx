@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 function ErrorMessage({ message }) {
@@ -29,7 +30,7 @@ function TextInput({ label, name, value, error, onChange }) {
   );
 }
 
-export default function Validation({ metadata = [], fiches = [] }) {
+export default function Validation({ metadata = [], fiches = [], operateurs = [] }) {
   const { props } = usePage();
   const errors = props.errors || {};
   const csrfToken =
@@ -41,6 +42,7 @@ export default function Validation({ metadata = [], fiches = [] }) {
     feuille_id: "",
     coupure_id: "",
     metadata_id: "",
+    operateur_id: "",
     emplacement: "",
   });
 
@@ -51,6 +53,7 @@ export default function Validation({ metadata = [], fiches = [] }) {
 
   useEffect(() => {
     setData("emplacement", selectedFiche?.emplacement || "");
+    setData("operateur_id", selectedFiche?.operateur_id ? String(selectedFiche.operateur_id) : "");
   }, [data.metadata_id]);
 
   return (
@@ -63,7 +66,7 @@ export default function Validation({ metadata = [], fiches = [] }) {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Validation export</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Génération du fichier XML de la fiche coupure
+                Generation des fichiers XML et PDF de la fiche coupure
               </p>
             </div>
           </div>
@@ -83,6 +86,13 @@ export default function Validation({ metadata = [], fiches = [] }) {
             <div className="grid gap-5 md:grid-cols-2">
               <Repeted metadata={metadata} data={data} setData={setData} errors={errors} />
 
+              <PhaseFields
+                data={data}
+                setData={setData}
+                errors={errors}
+                operateurs={operateurs}
+              />
+
               <TextInput
                 label="Emplacement d'enregistrément"
                 name="emplacement"
@@ -92,13 +102,21 @@ export default function Validation({ metadata = [], fiches = [] }) {
               />
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="submit"
                 disabled={metadata.length === 0 || !data.metadata_id}
                 className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Telecharger XML
+              </button>
+              <button
+                type="submit"
+                formAction="/validation-export/pdf"
+                disabled={metadata.length === 0 || !data.metadata_id}
+                className="rounded border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Exporter PDF
               </button>
             </div>
           </form>
@@ -118,6 +136,7 @@ export default function Validation({ metadata = [], fiches = [] }) {
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">
                         Emplacement
                       </th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -126,6 +145,7 @@ export default function Validation({ metadata = [], fiches = [] }) {
                         <td className="px-3 py-2 text-gray-700">{fiche.feuille_nom || "-"}</td>
                         <td className="px-3 py-2 text-gray-700">{fiche.coupure_nom || "-"}</td>
                         <td className="px-3 py-2 text-gray-700">{fiche.emplacement || "-"}</td>
+                        <td className="px-3 py-2 text-gray-700">{fiche.operateur_nom || "-"}</td>
                       </tr>
                     ))}
                   </tbody>

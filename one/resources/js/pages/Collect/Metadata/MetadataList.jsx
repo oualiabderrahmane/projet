@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import FeuilleCoupureFilter from "../../../Components/FeuilleCoupureFilter";
 
 function SelectFilter({ label, value, onChange, children }) {
   return (
@@ -36,19 +37,6 @@ export default function MetadataList({ metadata = [], editingMetadataId = null, 
   const [coupureFilter, setCoupureFilter] = useState("");
   const [paysFilter, setPaysFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
-
-  const feuilles = useMemo(
-    () => uniqueOptions(metadata, "feuille_id", "feuille_nom"),
-    [metadata]
-  );
-
-  const coupures = useMemo(() => {
-    const source = feuilleFilter
-      ? metadata.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : metadata;
-
-    return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [feuilleFilter, metadata]);
 
   const pays = useMemo(() => uniqueOptions(metadata, "pays_id", "pays_nom"), [metadata]);
   const echelles = useMemo(
@@ -97,31 +85,16 @@ export default function MetadataList({ metadata = [], editingMetadataId = null, 
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SelectFilter
-          label="Feuille"
-          value={feuilleFilter}
-          onChange={(value) => {
-            setFeuilleFilter(value);
-            setCoupureFilter("");
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <FeuilleCoupureFilter
+          rows={metadata}
+          feuilleValue={feuilleFilter}
+          coupureValue={coupureFilter}
+          onChange={({ feuilleId, coupureId }) => {
+            setFeuilleFilter(feuilleId);
+            setCoupureFilter(coupureId);
           }}
-        >
-          <option value="">Toutes les feuilles</option>
-          {feuilles.map((feuille) => (
-            <option key={feuille.id} value={feuille.id}>
-              {feuille.label}
-            </option>
-          ))}
-        </SelectFilter>
-
-        <SelectFilter label="Coupure" value={coupureFilter} onChange={setCoupureFilter}>
-          <option value="">Toutes les coupures</option>
-          {coupures.map((coupure) => (
-            <option key={coupure.id} value={coupure.id}>
-              {coupure.label}
-            </option>
-          ))}
-        </SelectFilter>
+        />
 
         <SelectFilter label="Pays" value={paysFilter} onChange={setPaysFilter}>
           <option value="">Tous les pays</option>
@@ -152,6 +125,7 @@ export default function MetadataList({ metadata = [], editingMetadataId = null, 
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Feuille</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Nom coupure</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Echelle</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Pays</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Systeme</th>
@@ -171,6 +145,7 @@ export default function MetadataList({ metadata = [], editingMetadataId = null, 
                   <td className="px-3 py-2 text-gray-700">{item.date_creation_metadata || "-"}</td>
                   <td className="px-3 py-2 text-gray-700">{item.feuille_nom || "-"}</td>
                   <td className="px-3 py-2 text-gray-700">{item.coupure_nom || "-"}</td>
+                  <td className="px-3 py-2 text-gray-700">{item.coupure_label || "-"}</td>
                   <td className="px-3 py-2 text-gray-700">{item.echelle_valeur || "-"}</td>
                   <td className="px-3 py-2 text-gray-700">{item.pays_nom || "-"}</td>
                   <td className="px-3 py-2 text-gray-700">

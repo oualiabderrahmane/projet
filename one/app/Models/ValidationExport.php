@@ -14,10 +14,12 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * @property int $id
  * @property int $metadata_id
+ * @property int|null $operateur_id
  * @property string|null $emplacement
  * @property string|null $format
  * 
  * @property Metadata $metadata
+ * @property Operateur|null $operateur
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
  * @package App\Models
@@ -31,12 +33,14 @@ class ValidationExport extends Model
 
 	protected $casts = [
 		'id' => 'int',
-		'metadata_id' => 'int'
+		'metadata_id' => 'int',
+		'operateur_id' => 'int'
 	];
 
 	protected $fillable = [
 		'id',
 		'metadata_id',
+		'operateur_id',
 		'emplacement',
 		'format'
 	];
@@ -44,6 +48,11 @@ class ValidationExport extends Model
 	public function metadata()
 	{
 		return $this->belongsTo(Metadata::class);
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function coupure_fiches()

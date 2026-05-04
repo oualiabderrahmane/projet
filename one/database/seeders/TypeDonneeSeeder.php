@@ -18,6 +18,7 @@ class TypeDonneeSeeder extends Seeder
             'Ancienne carte 250k',
             'Ancienne carte 500k',
             'Ancienne carte 1M',
+            'Ancienne carte 25M',
         ];
 
         foreach ($echelles as $type) {
@@ -28,10 +29,13 @@ class TypeDonneeSeeder extends Seeder
 
         // Other data sources
         $others = [
+            'Geobandaries',
+            'Font Google Maps',
             'Données GEONAMES',
             'GADM',
             'OSM',
             'Image satellitaire',
+
             'Autres',
         ];
 

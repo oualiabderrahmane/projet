@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use App\Models\CompletementSpatial;
 use App\Models\Format;
 use App\Models\Metadata;
 use App\Models\ModeRealisation;
@@ -14,6 +16,8 @@ use App\Models\TraitementVecteur;
 
 class TraitementVecteurController extends Controller
 {
+    use UsesPhaseFields;
+
     private const TRAITEMENT_FORMATS = [
         'GDB',
         'MDB',
@@ -40,6 +44,7 @@ class TraitementVecteurController extends Controller
             'metadataForTraitement' => $metadata['available'],
             'modesRealisation' => $this->traitementModeRows(),
             'formats' => Format::whereIn('nom', self::TRAITEMENT_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('traitment_vecteur'),
             'traitements' => $this->traitementRows(),
         ];
     }
@@ -103,6 +108,7 @@ class TraitementVecteurController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -145,6 +151,7 @@ class TraitementVecteurController extends Controller
             'metadata.echelle',
             'mode_realisation',
             'format',
+            'operateur',
         ])
             ->orderByDesc('id')
             ->get()
@@ -155,8 +162,10 @@ class TraitementVecteurController extends Controller
                 'feuille_nom' => $traitement->metadata?->coupure?->feuille?->nom,
                 'coupure_id' => $traitement->metadata?->coupure?->id,
                 'coupure_nom' => $traitement->metadata?->coupure?->nom,
+                'coupure_label' => $traitement->metadata?->coupure?->label,
                 'echelle_id' => $traitement->metadata?->echelle?->id,
                 'echelle_valeur' => $traitement->metadata?->echelle?->valeur,
+                ...$this->phaseRowFields($traitement),
                 'logiciel_utilise' => $traitement->logiciel_utilise,
                 'version_logiciel' => $traitement->version_logiciel,
                 'mode_realisation_id' => $traitement->mode_realisation_id,
@@ -194,6 +203,7 @@ class TraitementVecteurController extends Controller
                 Rule::exists('completement_spatial', 'metadata_id')
                     ->where(fn ($query) => $query->where('traite', true)),
             ],
+            ...$this->phaseFieldRules('traitment_vecteur'),
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'mode_realisation_id' => ['required', $this->modeRealisationRule()],
@@ -206,9 +216,12 @@ class TraitementVecteurController extends Controller
         ]);
 
         $record = DB::transaction(function () use ($validated) {
+            $previous = CompletementSpatial::where('metadata_id', $validated['metadata_id'])->first();
+
             return TraitementVecteur::create([
                 'id' => $this->nextId(TraitementVecteur::class),
                 ...$validated,
+                ...$this->automaticPhaseDates($previous),
                 'traite' => true,
             ]);
         });
@@ -233,6 +246,7 @@ class TraitementVecteurController extends Controller
 
         $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:traitement_vecteur,metadata_id,' . $record->id,
+            ...$this->phaseFieldRules('traitment_vecteur'),
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'mode_realisation_id' => ['required', $this->modeRealisationRule()],
@@ -244,7 +258,12 @@ class TraitementVecteurController extends Controller
             ],
         ]);
 
-        $record->update($validated);
+        $previous = CompletementSpatial::where('metadata_id', $validated['metadata_id'])->first();
+
+        $record->update([
+            ...$validated,
+            ...$this->automaticPhaseDates($previous, currentRecord: $record),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($record);

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('collecte_preparation', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'collecte_preparation_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['operateur_id'], 'collecte_preparation_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
             $table->foreign(['type_osm_id'], 'collecte_preparation_type_osm_id_fkey')->references(['id'])->on('types_osm')->onUpdate('no action')->onDelete('no action');
         });
     }
@@ -24,6 +25,7 @@ return new class extends Migration
     {
         Schema::table('collecte_preparation', function (Blueprint $table) {
             $table->dropForeign('collecte_preparation_metadata_id_fkey');
+            $table->dropForeign('collecte_preparation_operateur_id_fkey');
             $table->dropForeign('collecte_preparation_type_osm_id_fkey');
         });
     }

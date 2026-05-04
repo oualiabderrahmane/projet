@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -10,11 +11,14 @@ use Inertia\Inertia;
 use App\Models\Format;
 use App\Models\Metadata;
 use App\Models\RedactionCartographique;
+use App\Models\TraitementVecteur;
 
 class RedactionCartographiqueController extends Controller
 {
+    use UsesPhaseFields;
+
     private const REDACTION_FORMATS = [
-        'GeoTif',
+        'Geotif',
         'pdf',
         'ecw',
         'autre',
@@ -39,6 +43,7 @@ class RedactionCartographiqueController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -78,7 +83,7 @@ class RedactionCartographiqueController extends Controller
     {
         $metadata = $this->metadataCollections();
 
-        $redactions = RedactionCartographique::with(['metadata.coupure.feuille', 'metadata.echelle', 'format'])
+        $redactions = RedactionCartographique::with(['metadata.coupure.feuille', 'metadata.echelle', 'format', 'operateur'])
             ->orderByDesc('id')
             ->get()
             ->map(fn (RedactionCartographique $record) => [
@@ -88,8 +93,10 @@ class RedactionCartographiqueController extends Controller
                 'feuille_nom' => $record->metadata?->coupure?->feuille?->nom,
                 'coupure_id' => $record->metadata?->coupure?->id,
                 'coupure_nom' => $record->metadata?->coupure?->nom,
+                'coupure_label' => $record->metadata?->coupure?->label,
                 'echelle_id' => $record->metadata?->echelle?->id,
                 'echelle_valeur' => $record->metadata?->echelle?->valeur,
+                ...$this->phaseRowFields($record),
                 'logiciel_utilise' => $record->logiciel_utilise,
                 'version_logiciel' => $record->version_logiciel,
                 'format_id' => $record->format_id,
@@ -102,6 +109,7 @@ class RedactionCartographiqueController extends Controller
             'metadata' => $metadata['all'],
             'metadataForRedaction' => $metadata['available'],
             'formats' => Format::whereIn('nom', self::REDACTION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('redaction'),
             'redactions' => $redactions,
         ];
     }
@@ -131,6 +139,7 @@ class RedactionCartographiqueController extends Controller
                 Rule::exists('traitement_vecteur', 'metadata_id')
                     ->where(fn ($query) => $query->where('traite', true)),
             ],
+            ...$this->phaseFieldRules('redaction'),
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'format_id' => [
@@ -141,9 +150,12 @@ class RedactionCartographiqueController extends Controller
         ]);
 
         $record = DB::transaction(function () use ($validated) {
+            $previous = TraitementVecteur::where('metadata_id', $validated['metadata_id'])->first();
+
             return RedactionCartographique::create([
                 'id' => $this->nextId(RedactionCartographique::class),
                 ...$validated,
+                ...$this->automaticPhaseDates($previous),
                 'traite' => true,
             ]);
         });
@@ -169,6 +181,7 @@ class RedactionCartographiqueController extends Controller
         $validated = $request->validate([
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
+            ...$this->phaseFieldRules('redaction'),
             'format_id' => [
                 'nullable',
                 Rule::exists('formats', 'id')
@@ -176,7 +189,12 @@ class RedactionCartographiqueController extends Controller
             ],
         ]);
 
-        $record->update($validated);
+        $previous = TraitementVecteur::where('metadata_id', $record->metadata_id)->first();
+
+        $record->update([
+            ...$validated,
+            ...$this->automaticPhaseDates($previous, currentRecord: $record),
+        ]);
 
         if ($request->expectsJson()) {
             return $record;

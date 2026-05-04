@@ -1,6 +1,8 @@
 import { useMemo } from "react";
+import SearchableSelect from "./SearchableSelect";
 import { useCoupures } from "../Hooks/Coupures";
 import { useFeuilles } from "../Hooks/Feuilles";
+import { resolveFeuilleCoupureCode } from "../Utils/feuilleCoupureCode";
 
 const idValue = (value) => (value === null || value === undefined ? "" : String(value));
 
@@ -57,6 +59,10 @@ function ReadOnlyField({ label, value }) {
 export default function Repeted({ metadata = [], data, setData, errors = {} }) {
   const feuilles = useFeuilles(metadata);
   const coupures = useCoupures(metadata, data.feuille_id);
+  const feuilleOptions = useMemo(
+    () => feuilles.map((feuille) => ({ id: feuille.id, label: feuille.nom })),
+    [feuilles]
+  );
 
   const selectedMetadata = useMemo(
     () => metadata.find((item) => idValue(item.id) === data.metadata_id),
@@ -103,23 +109,34 @@ export default function Repeted({ metadata = [], data, setData, errors = {} }) {
     });
   };
 
+  const handleFeuilleSearch = (query) => {
+    const match = resolveFeuilleCoupureCode(metadata, query);
+
+    if (!match) {
+      return false;
+    }
+
+    setSelection({
+      feuille_id: match.feuilleId,
+      coupure_id: match.coupureId,
+      metadata_id: match.metadataId,
+    });
+    return true;
+  };
+
   return (
     <>
-      <SelectInput
+      <SearchableSelect
         label="Feuille"
-        name="feuille_id"
         value={data.feuille_id}
         error={errors.feuille_id}
-        onChange={handleFeuilleChange}
+        onChange={(value) => handleFeuilleChange("feuille_id", value)}
+        onSearch={handleFeuilleSearch}
+        options={feuilleOptions}
+        placeholder="Selectionner une feuille"
+        searchPlaceholder="Rechercher une feuille, ex: F1123C1"
         disabled={metadata.length === 0}
-      >
-        <option value="">Selectionner une feuille</option>
-        {feuilles.map((feuille) => (
-          <option key={feuille.id} value={feuille.id}>
-            {feuille.nom}
-          </option>
-        ))}
-      </SelectInput>
+      />
 
       <SelectInput
         label="Coupure"
@@ -142,7 +159,10 @@ export default function Repeted({ metadata = [], data, setData, errors = {} }) {
         <ErrorMessage message={errors.metadata_id} />
       </div>
 
-      <ReadOnlyField label="Nom de la coupure" value={selectedMetadata?.coupure_nom || ""} />
+      <ReadOnlyField
+        label="Nom de la coupure"
+        value={selectedMetadata?.coupure_label || selectedMetadata?.coupure_nom || ""}
+      />
     </>
   );
 }

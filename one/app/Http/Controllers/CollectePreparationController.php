@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -12,6 +13,8 @@ use App\Models\TypesOsm;
 
 class CollectePreparationController extends Controller
 {
+    use UsesPhaseFields;
+
     private function nextId(string $modelClass): int
     {
         $lastId = $modelClass::query()
@@ -31,6 +34,7 @@ class CollectePreparationController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -70,6 +74,7 @@ class CollectePreparationController extends Controller
         return CollectePreparation::with([
             'metadata.coupure.feuille',
             'metadata.echelle',
+            'operateur',
             'types_osm',
         ])
             ->orderByDesc('id')
@@ -81,9 +86,11 @@ class CollectePreparationController extends Controller
                 'feuille_nom' => $preparation->metadata?->coupure?->feuille?->nom,
                 'coupure_id' => $preparation->metadata?->coupure?->id,
                 'coupure_nom' => $preparation->metadata?->coupure?->nom,
+                'coupure_label' => $preparation->metadata?->coupure?->label,
                 'echelle_id' => $preparation->metadata?->echelle?->id,
                 'echelle_valeur' => $preparation->metadata?->echelle?->valeur,
                 'date_creation_metadata' => $preparation->metadata?->date_creation_metadata?->format('Y-m-d'),
+                ...$this->phaseRowFields($preparation),
                 'imagerie' => $preparation->imagerie,
                 'resolution' => $preparation->resolution,
                 'type_osm_id' => $preparation->type_osm_id,
@@ -103,6 +110,7 @@ class CollectePreparationController extends Controller
             'metadata' => $metadata['all'],
             'metadataForPreparation' => $metadata['available'],
             'typesOsm' => TypesOsm::orderBy('nom')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('collect'),
             'preparations' => $this->preparationRows(),
         ]);
     }
@@ -120,6 +128,7 @@ class CollectePreparationController extends Controller
     {
         $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:collecte_preparation,metadata_id',
+            ...$this->phaseFieldRules('collect'),
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'type_osm_id' => 'nullable|exists:types_osm,id',
@@ -128,9 +137,12 @@ class CollectePreparationController extends Controller
         ]);
 
         $cp = DB::transaction(function () use ($validated) {
+            $metadata = Metadata::findOrFail($validated['metadata_id']);
+
             return CollectePreparation::create([
                 'id' => $this->nextId(CollectePreparation::class),
                 ...$validated,
+                ...$this->automaticPhaseDates(fallbackStart: $metadata->date_creation_metadata),
                 'traite' => true,
             ]);
         });
@@ -161,6 +173,7 @@ class CollectePreparationController extends Controller
     {
         $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:collecte_preparation,metadata_id,' . $preparation->id,
+            ...$this->phaseFieldRules('collect'),
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'type_osm_id' => 'nullable|exists:types_osm,id',
@@ -168,7 +181,15 @@ class CollectePreparationController extends Controller
             'gadm_version' => 'nullable|string|max:50',
         ]);
 
-        $preparation->update($validated);
+        $metadata = Metadata::findOrFail($validated['metadata_id']);
+
+        $preparation->update([
+            ...$validated,
+            ...$this->automaticPhaseDates(
+                fallbackStart: $metadata->date_creation_metadata,
+                currentRecord: $preparation
+            ),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($preparation);

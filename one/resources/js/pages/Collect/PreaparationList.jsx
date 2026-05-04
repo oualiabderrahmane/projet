@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import FeuilleCoupureFilter from "../../Components/FeuilleCoupureFilter";
 import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
@@ -60,9 +61,13 @@ export default function PreaparationList({
         feuille_nom: metadataRow.feuille_nom,
         coupure_id: metadataRow.coupure_id,
         coupure_nom: metadataRow.coupure_nom,
+        coupure_label: metadataRow.coupure_label,
         echelle_id: metadataRow.echelle_id,
         echelle_valeur: metadataRow.echelle_valeur,
         date_creation_metadata: metadataRow.date_creation_metadata,
+        operateur_nom: preparation?.operateur_nom || "",
+        date_debut: preparation?.date_debut || "",
+        date_fin: preparation?.date_fin || "",
         imagerie: preparation?.imagerie || "",
         resolution: preparation?.resolution || "",
         type_osm_id: preparation?.type_osm_id ?? null,
@@ -73,19 +78,6 @@ export default function PreaparationList({
       };
     });
   }, [metadata, preparations]);
-
-  const feuilles = useMemo(
-    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
-    [rows]
-  );
-
-  const coupures = useMemo(() => {
-    const source = feuilleFilter
-      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : rows;
-
-    return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
     () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
@@ -144,31 +136,16 @@ export default function PreaparationList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <SelectFilter
-          label="Feuille"
-          value={feuilleFilter}
-          onChange={(value) => {
-            setFeuilleFilter(value);
-            setCoupureFilter("");
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FeuilleCoupureFilter
+          rows={rows}
+          feuilleValue={feuilleFilter}
+          coupureValue={coupureFilter}
+          onChange={({ feuilleId, coupureId }) => {
+            setFeuilleFilter(feuilleId);
+            setCoupureFilter(coupureId);
           }}
-        >
-          <option value="">Toutes les feuilles</option>
-          {feuilles.map((feuille) => (
-            <option key={feuille.id} value={feuille.id}>
-              {feuille.label}
-            </option>
-          ))}
-        </SelectFilter>
-
-        <SelectFilter label="Coupure" value={coupureFilter} onChange={setCoupureFilter}>
-          <option value="">Toutes les coupures</option>
-          {coupures.map((coupure) => (
-            <option key={coupure.id} value={coupure.id}>
-              {coupure.label}
-            </option>
-          ))}
-        </SelectFilter>
+        />
 
         <SelectFilter label="Echelle" value={echelleFilter} onChange={setEchelleFilter}>
           <option value="">Toutes les échelles</option>
@@ -206,6 +183,9 @@ export default function PreaparationList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Feuille</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Echelle</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Debut</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Fin</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Imagerie</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Resolution</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Type OSM</th>
@@ -235,6 +215,15 @@ export default function PreaparationList({
                     </td>
                     <td className="px-3 py-2 text-gray-700">
                       {preparation.echelle_valeur || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {preparation.operateur_nom || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {preparation.date_debut || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {preparation.date_fin || "-"}
                     </td>
                     <td className="px-3 py-2 text-gray-700">
                       {preparation.imagerie || "-"}

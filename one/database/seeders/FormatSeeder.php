@@ -9,13 +9,24 @@ class FormatSeeder extends Seeder
 {
     public function run(): void
     {
+        $renames = [
+            'Dxf' => 'DXF',
+            'Dgm' => 'DGN',
+            'Shp' => 'SHP',
+            'GeoTif' => 'Geotif',
+        ];
+
+        foreach ($renames as $oldName => $newName) {
+            Format::where('nom', $oldName)->update(['nom' => $newName]);
+        }
+
         $formats = [
-            'Dxf',
-            'Dgm',
-            'Shp',
+            'DXF',
+            'DGN',
+            'SHP',
             'GDB',
             'MDB',
-            'GeoTif',
+            'Geotif',
             'pdf',
             'ecw',
             'autre',

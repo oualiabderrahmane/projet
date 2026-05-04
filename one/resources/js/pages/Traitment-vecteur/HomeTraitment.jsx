@@ -9,6 +9,7 @@ export default function HomeTraitment({
   metadataForTraitement = [],
   modesRealisation = [],
   formats = [],
+  operateurs = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -41,6 +42,7 @@ export default function HomeTraitment({
               metadata={metadataForTraitement}
               modesRealisation={modesRealisation}
               formats={formats}
+              operateurs={operateurs}
               traitementRecord={selectedTraitement}
               onCancelEdit={() => setSelectedTraitement(null)}
               onSaved={() => setSelectedTraitement(null)}

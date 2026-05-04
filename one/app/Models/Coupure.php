@@ -36,7 +36,8 @@ class Coupure extends Model
 	protected $fillable = [
 		'id',
 		'feuille_id',
-		'nom'
+		'nom',
+		'label'
 	];
 
 	public function feuille()

@@ -8,6 +8,7 @@ export default function HomeExtraction({
   metadata = [],
   metadataForExtraction = [],
   modesExtraction = [],
+  operateurs = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -39,6 +40,7 @@ export default function HomeExtraction({
             <ExtractionCreate
               metadata={metadataForExtraction}
               modesExtraction={modesExtraction}
+              operateurs={operateurs}
               extractionRecord={selectedExtraction}
               onCancelEdit={() => setSelectedExtraction(null)}
               onSaved={() => setSelectedExtraction(null)}

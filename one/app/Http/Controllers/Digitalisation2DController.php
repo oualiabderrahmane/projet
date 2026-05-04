@@ -2,22 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Digitalisation2d;
+use App\Models\ExtractionAltimetrique;
 use App\Models\Format;
 use App\Models\Metadata;
-use App\Models\ModesRealisation;
+use App\Models\ModeRealisation;
 
 class Digitalisation2DController extends Controller
 {
+    use UsesPhaseFields;
+
     private const DIGITALISATION_FORMATS = [
-        'Dxf',
-        'Dgm',
-        'Shp',
+        'DXF',
+        'DGN',
+        'SHP',
         'GDB',
         'MDB',
     ];
@@ -41,6 +45,7 @@ class Digitalisation2DController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -83,6 +88,7 @@ class Digitalisation2DController extends Controller
             'metadata.echelle',
             'modes_realisation',
             'format',
+            'operateur',
         ])
             ->orderByDesc('id')
             ->get()
@@ -93,8 +99,10 @@ class Digitalisation2DController extends Controller
                 'feuille_nom' => $digitalisation->metadata?->coupure?->feuille?->nom,
                 'coupure_id' => $digitalisation->metadata?->coupure?->id,
                 'coupure_nom' => $digitalisation->metadata?->coupure?->nom,
+                'coupure_label' => $digitalisation->metadata?->coupure?->label,
                 'echelle_id' => $digitalisation->metadata?->echelle?->id,
                 'echelle_valeur' => $digitalisation->metadata?->echelle?->valeur,
+                ...$this->phaseRowFields($digitalisation),
                 'logiciel_utilise' => $digitalisation->logiciel_utilise,
                 'version_logiciel' => $digitalisation->version_logiciel,
                 'mode_realisation_id' => $digitalisation->mode_realisation_id,
@@ -113,8 +121,9 @@ class Digitalisation2DController extends Controller
         return Inertia::render('Degitalisation/HomeDigitalisation', [
             'metadata' => $metadata['all'],
             'metadataForDigitalisation' => $metadata['available'],
-            'modesRealisation' => ModesRealisation::orderBy('nom')->get(['id', 'nom']),
+            'modesRealisation' => ModeRealisation::orderBy('nom')->get(['id', 'nom']),
             'formats' => Format::whereIn('nom', self::DIGITALISATION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('digitalisation'),
             'digitalisations' => $this->digitalisationRows(),
         ]);
     }
@@ -125,8 +134,9 @@ class Digitalisation2DController extends Controller
 
         return Inertia::render('Degitalisation/Digitalisation', [
             'metadata' => $metadata['available'],
-            'modesRealisation' => ModesRealisation::orderBy('nom')->get(['id', 'nom']),
+            'modesRealisation' => ModeRealisation::orderBy('nom')->get(['id', 'nom']),
             'formats' => Format::whereIn('nom', self::DIGITALISATION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('digitalisation'),
         ]);
     }
 
@@ -145,6 +155,7 @@ class Digitalisation2DController extends Controller
                 Rule::exists('extraction_altimetrique', 'metadata_id')
                     ->where(fn ($query) => $query->where('traite', true)),
             ],
+            ...$this->phaseFieldRules('digitalisation'),
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'mode_realisation_id' => 'nullable|exists:modes_realisation,id',
@@ -156,9 +167,12 @@ class Digitalisation2DController extends Controller
         ]);
 
         $record = DB::transaction(function () use ($validated) {
+            $previous = ExtractionAltimetrique::where('metadata_id', $validated['metadata_id'])->first();
+
             return Digitalisation2d::create([
                 'id' => $this->nextId(Digitalisation2d::class),
                 ...$validated,
+                ...$this->automaticPhaseDates($previous),
                 'traite' => true,
             ]);
         });
@@ -183,6 +197,7 @@ class Digitalisation2DController extends Controller
 
         $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:digitalisation_2d,metadata_id,' . $record->id,
+            ...$this->phaseFieldRules('digitalisation'),
             'logiciel_utilise' => 'nullable|string|max:100',
             'version_logiciel' => 'nullable|string|max:50',
             'mode_realisation_id' => 'nullable|exists:modes_realisation,id',
@@ -193,7 +208,12 @@ class Digitalisation2DController extends Controller
             ],
         ]);
 
-        $record->update($validated);
+        $previous = ExtractionAltimetrique::where('metadata_id', $validated['metadata_id'])->first();
+
+        $record->update([
+            ...$validated,
+            ...$this->automaticPhaseDates($previous, currentRecord: $record),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($record);

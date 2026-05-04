@@ -1,11 +1,13 @@
 import { useForm } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 const emptyPreparationForm = {
   feuille_id: "",
   coupure_id: "",
   metadata_id: "",
+  operateur_id: "",
   imagerie: "",
   resolution: "",
   type_osm_id: "",
@@ -24,6 +26,7 @@ const preparationToForm = (preparationRecord) => {
     feuille_id: idValue(preparationRecord.feuille_id),
     coupure_id: idValue(preparationRecord.coupure_id),
     metadata_id: idValue(preparationRecord.metadata_id),
+    operateur_id: idValue(preparationRecord.operateur_id),
     imagerie: preparationRecord.imagerie || "",
     resolution: preparationRecord.resolution || "",
     type_osm_id: idValue(preparationRecord.type_osm_id),
@@ -85,6 +88,7 @@ function SelectInput({ label, name, value, error, onChange, children, disabled =
 export default function PreparationCreate({
   metadata = [],
   typesOsm = [],
+  operateurs = [],
   preparationRecord = null,
   onCancelEdit,
   onSaved,
@@ -113,6 +117,7 @@ export default function PreparationCreate({
         feuille_nom: preparationRecord.feuille_nom,
         coupure_id: preparationRecord.coupure_id,
         coupure_nom: preparationRecord.coupure_nom,
+        coupure_label: preparationRecord.coupure_label,
         echelle_id: preparationRecord.echelle_id,
         echelle_valeur: preparationRecord.echelle_valeur,
       },
@@ -172,6 +177,13 @@ export default function PreparationCreate({
       <form onSubmit={handleSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
           <Repeted metadata={metadataForForm} data={data} setData={setData} errors={errors} />
+
+          <PhaseFields
+            data={data}
+            setData={setData}
+            errors={errors}
+            operateurs={operateurs}
+          />
 
               <TextInput
                 label="Imagerie"

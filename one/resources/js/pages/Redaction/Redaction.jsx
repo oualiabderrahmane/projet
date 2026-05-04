@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 import RedactionList from "./RedactionList";
 
@@ -54,6 +55,7 @@ export default function Redaction({
   metadata = [],
   metadataForRedaction = [],
   formats = [],
+  operateurs = [],
   redactions = [],
 }) {
   const { props } = usePage();
@@ -65,6 +67,7 @@ export default function Redaction({
     feuille_id: "",
     coupure_id: "",
     metadata_id: "",
+    operateur_id: "",
     logiciel_utilise: "",
     version_logiciel: "",
     format_id: "",
@@ -76,6 +79,7 @@ export default function Redaction({
       feuille_id: String(record.feuille_id ?? ""),
       coupure_id: String(record.coupure_id ?? ""),
       metadata_id: String(record.metadata_id ?? ""),
+      operateur_id: String(record.operateur_id ?? ""),
       logiciel_utilise: record.logiciel_utilise || "",
       version_logiciel: record.version_logiciel || "",
       format_id: String(record.format_id ?? ""),
@@ -144,6 +148,13 @@ export default function Redaction({
                   errors={errors}
                 />
               )}
+
+              <PhaseFields
+                data={data}
+                setData={setData}
+                errors={errors}
+                operateurs={operateurs}
+              />
 
               <TextInput
                 label="Logiciel utilise"

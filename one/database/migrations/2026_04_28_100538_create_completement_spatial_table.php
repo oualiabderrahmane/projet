@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('completement_spatial', function (Blueprint $table) {
             $table->bigInteger('id')->primary();
             $table->bigInteger('metadata_id')->unique('completement_spatial_metadata_id_key');
+            $table->unsignedBigInteger('operateur_id')->nullable();
+            $table->date('date_debut')->nullable();
+            $table->date('date_fin')->nullable();
         });
     }
 

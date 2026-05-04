@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\CompletementSpatial;
+use App\Models\Digitalisation2d;
 use App\Models\Metadata;
 use App\Models\TypesDonneesSpatiale;
 
 class CompletementSpatialController extends Controller
 {
+    use UsesPhaseFields;
+
     private function formatMetadataRows(Collection $metadataRows)
     {
         return $metadataRows
@@ -22,6 +26,8 @@ class CompletementSpatialController extends Controller
                 'feuille_nom' => $m->coupure?->feuille?->nom,
                 'coupure_id' => $m->coupure?->id,
                 'coupure_nom' => $m->coupure?->nom,
+                'coupure_label' => $m->coupure?->label,
+                'echelle_id' => $m->echelle?->id,
                 'echelle_valeur' => $m->echelle?->valeur,
             ])
             ->values();
@@ -64,6 +70,7 @@ class CompletementSpatialController extends Controller
             'metadata.coupure.feuille',
             'metadata.echelle',
             'types_donnees_spatiales',
+            'operateur',
         ])->get()->map(fn ($c) => [
             'id'                      => $c->id,
             'metadata_id'             => $c->metadata_id,
@@ -71,8 +78,10 @@ class CompletementSpatialController extends Controller
             'feuille_nom'             => $c->metadata?->coupure?->feuille?->nom,
             'coupure_id'              => $c->metadata?->coupure?->id,
             'coupure_nom'             => $c->metadata?->coupure?->nom,
+            'coupure_label'           => $c->metadata?->coupure?->label,
             'echelle_id'              => $c->metadata?->echelle?->id,
             'echelle_valeur'          => $c->metadata?->echelle?->valeur,
+            ...$this->phaseRowFields($c),
             'traite'                  => (bool) $c->traite,
             'types_donnees_spatiales' => $c->types_donnees_spatiales->map(fn ($t) => [
                 'id'  => $t->id,
@@ -84,6 +93,7 @@ class CompletementSpatialController extends Controller
             'metadata' => $metadata['all'],
             'metadataForCompletement' => $metadata['available'],
             'typesDonnees' => TypesDonneesSpatiale::orderBy('nom')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('completment_spatial'),
             'completements' => $completements,
         ];
     }
@@ -142,14 +152,19 @@ class CompletementSpatialController extends Controller
             Rule::exists('digitalisation_2d', 'metadata_id')
                 ->where(fn ($query) => $query->where('traite', true)),
         ],
+        ...$this->phaseFieldRules('completment_spatial'),
         'type_donnees_ids' => 'required|array|min:1',
         'type_donnees_ids.*' => 'exists:types_donnees_spatiales,id',
     ]);
 
     $record = DB::transaction(function () use ($validated) {
+        $previous = Digitalisation2d::where('metadata_id', $validated['metadata_id'])->first();
+
         $record = CompletementSpatial::create([
             'id' => $this->nextId(CompletementSpatial::class),
             'metadata_id' => $validated['metadata_id'],
+            'operateur_id' => $validated['operateur_id'] ?? null,
+            ...$this->automaticPhaseDates($previous),
             'traite' => true,
         ]);
 
@@ -182,12 +197,18 @@ class CompletementSpatialController extends Controller
             'type_donnees_id' => 'nullable|exists:types_donnees_spatiales,id',
             'type_donnees_ids' => 'nullable|array',
             'type_donnees_ids.*' => 'exists:types_donnees_spatiales,id',
+            ...$this->phaseFieldRules('completment_spatial'),
         ]);
 
         $typeDonneesIds = $this->normalizeTypeDonneesIds($validated);
 
         $record->update([
             'type_donnees_id' => $typeDonneesIds[0] ?? null,
+            'operateur_id' => $validated['operateur_id'] ?? null,
+            ...$this->automaticPhaseDates(
+                Digitalisation2d::where('metadata_id', $record->metadata_id)->first(),
+                currentRecord: $record
+            ),
         ]);
 
         $record->types_donnees_spatiales()->sync($typeDonneesIds);

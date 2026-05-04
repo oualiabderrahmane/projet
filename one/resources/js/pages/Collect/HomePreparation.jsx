@@ -8,6 +8,7 @@ export default function HomePreparation({
   metadata = [],
   metadataForPreparation = [],
   typesOsm = [],
+  operateurs = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -41,6 +42,7 @@ export default function HomePreparation({
             <PreparationCreate
               metadata={metadataForPreparation}
               typesOsm={typesOsm}
+              operateurs={operateurs}
               preparationRecord={selectedPreparation}
               onCancelEdit={() => setSelectedPreparation(null)}
               onSaved={() => setSelectedPreparation(null)}

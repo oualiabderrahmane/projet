@@ -1,6 +1,7 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import CheckboxGroup from "../../Components/CheckboxGroup";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 import CompletementSpatialList from "./CompletmentSpatialList";
 
@@ -8,6 +9,7 @@ export default function HomeCompletment({
   metadata = [],
   metadataForCompletement = [],
   typesDonnees = [],
+  operateurs = [],
   completements = [],
 }) {
   const { props } = usePage();
@@ -22,6 +24,7 @@ export default function HomeCompletment({
       feuille_id: "",
       coupure_id: "",
       metadata_id: "",
+      operateur_id: "",
       type_donnees_ids: [],
     });
 
@@ -31,6 +34,7 @@ export default function HomeCompletment({
       feuille_id: String(completement.feuille_id ?? ""),
       coupure_id: String(completement.coupure_id ?? ""),
       metadata_id: String(completement.metadata_id ?? ""),
+      operateur_id: String(completement.operateur_id ?? ""),
       type_donnees_ids: (completement.types_donnees_spatiales ?? []).map((t) => t.id),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -131,9 +135,16 @@ export default function HomeCompletment({
                 />
               )}
 
+              <PhaseFields
+                data={data}
+                setData={setData}
+                errors={errors}
+                operateurs={operateurs}
+              />
+
               <div className="md:col-span-2">
                 <CheckboxGroup
-                  label="Types de données"
+                  label="Données de Complétment"
                   name="type_donnees_ids"
                   value={data.type_donnees_ids}
                   error={errors.type_donnees_ids}

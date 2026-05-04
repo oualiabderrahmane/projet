@@ -1,11 +1,13 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { useEffect, useMemo, useState } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 const emptySelection = {
   feuille_id: "",
   coupure_id: "",
   metadata_id: "",
+  operateur_id: "",
   date_edition: "",
 };
 
@@ -69,6 +71,7 @@ export default function Controle({
   metadata = [],
   typesControle = [],
   niveauxControle = [],
+  operateurs = [],
   controlesEffectues = [],
 }) {
   const { props } = usePage();
@@ -106,9 +109,11 @@ export default function Controle({
   useEffect(() => {
     const existingDateEdition =
       controlesForSelectedMetadata.find((controle) => controle.date_edition)?.date_edition || "";
+    const existingPhase = controlesForSelectedMetadata[0] || {};
 
     setDataState((current) => ({
       ...current,
+      operateur_id: existingPhase.operateur_id ? idValue(existingPhase.operateur_id) : "",
       date_edition: existingDateEdition,
     }));
     setControleInputs({});
@@ -164,6 +169,7 @@ export default function Controle({
         metadata_id: data.metadata_id,
         type_controle_id: typeControle.id,
         niveau_controle_id: input.niveau_controle_id,
+        operateur_id: data.operateur_id,
         date_controle: input.date_controle,
         date_edition: data.date_edition,
       },
@@ -214,6 +220,13 @@ export default function Controle({
             <div className="grid gap-5 md:grid-cols-2">
               <Repeted metadata={metadata} data={data} setData={setData} errors={errors} />
 
+              <PhaseFields
+                data={data}
+                setData={setData}
+                errors={activeTypeId ? errors : {}}
+                operateurs={operateurs}
+              />
+
               <div className="md:col-span-2">
                 <DateInput
                   label="Date edition"
@@ -256,6 +269,22 @@ export default function Controle({
 
                   {savedControle ? (
                     <div className="space-y-4">
+                      <div>
+                        <span className="block text-sm font-medium text-gray-700">
+                          Operateur
+                        </span>
+                        <div className="mt-1 min-h-10 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                          {savedControle.operateur_nom || "-"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="block text-sm font-medium text-gray-700">Dates</span>
+                        <div className="mt-1 min-h-10 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                          {[savedControle.date_debut, savedControle.date_fin].filter(Boolean).join(" - ") || "-"}
+                        </div>
+                      </div>
+
                       <div>
                         <span className="block text-sm font-medium text-gray-700">Niveau</span>
                         <div className="mt-1 min-h-10 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
@@ -336,6 +365,9 @@ export default function Controle({
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Type</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Niveau</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Debut</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Fin</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">
                         Date controle
                       </th>
@@ -351,6 +383,15 @@ export default function Controle({
                         </td>
                         <td className="px-3 py-2 text-gray-700">
                           {controle.niveau_controle_nom || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {controle.operateur_nom || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {controle.date_debut || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          {controle.date_fin || "-"}
                         </td>
                         <td className="px-3 py-2 text-gray-700">
                           {controle.date_controle || "-"}

@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('traitement_vecteur', function (Blueprint $table) {
             $table->bigInteger('id')->primary();
             $table->bigInteger('metadata_id')->unique('traitement_vecteur_metadata_id_key');
+            $table->unsignedBigInteger('operateur_id')->nullable();
+            $table->date('date_debut')->nullable();
+            $table->date('date_fin')->nullable();
             $table->string('logiciel_utilise', 100)->nullable();
             $table->string('version_logiciel', 50)->nullable();
             $table->bigInteger('mode_realisation_id')->nullable();

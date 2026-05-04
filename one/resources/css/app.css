@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -24,24 +25,35 @@
 
 @layer base {
     body {
-        @apply bg-slate-50 text-slate-800 antialiased font-sans selection:bg-primary-200 selection:text-primary-900;
+        @apply bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased font-sans selection:bg-primary-200 dark:selection:bg-primary-800 selection:text-primary-900 dark:selection:text-primary-100 transition-colors duration-300;
         background: radial-gradient(circle at top left, #eff6ff 0%, #f8fafc 100%);
+    }
+    
+    .dark body {
+        background: radial-gradient(circle at top left, #0f172a 0%, #1e293b 100%);
     }
 
     input,
     select,
     textarea {
-        @apply transition-all duration-200 rounded-xl border border-slate-300 bg-white/70 px-4 py-2.5 text-slate-800 shadow-sm backdrop-blur-sm focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/20;
+        @apply transition-all duration-200 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 px-4 py-2.5 text-slate-800 dark:text-slate-100 shadow-sm backdrop-blur-sm focus:border-primary-500 dark:focus:border-primary-400 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-primary-500/20 dark:focus:ring-primary-400/20;
     }
 }
 
 @layer components {
     .page-shell {
-        @apply min-h-screen px-4 py-10 sm:px-6 lg:px-8;
+        @apply min-h-screen px-4 py-10 sm:px-6 lg:px-8 transition-colors duration-300;
         background:
             radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.18), transparent 30rem),
             radial-gradient(circle at 88% 18%, rgba(14, 165, 233, 0.16), transparent 28rem),
             linear-gradient(135deg, #f8fbff 0%, #edf5ff 48%, #f8fafc 100%);
+    }
+    
+    .dark .page-shell {
+        background:
+            radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.25), transparent 30rem),
+            radial-gradient(circle at 88% 18%, rgba(14, 165, 233, 0.2), transparent 28rem),
+            linear-gradient(135deg, #0f172a 0%, #1e293b 48%, #0f172a 100%);
     }
 
     .page-container {
@@ -50,57 +62,59 @@
     }
 
     .card {
-        @apply relative overflow-hidden rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 hover:shadow-[0_28px_90px_rgba(15,23,42,0.12)] sm:p-8;
+        @apply relative overflow-hidden rounded-3xl border border-white/70 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/85 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all duration-300 hover:shadow-[0_28px_90px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_28px_90px_rgba(0,0,0,0.6)] sm:p-8;
     }
 
     .page-title {
-        @apply text-3xl font-extrabold tracking-tight text-slate-900;
+        @apply text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white;
         background: linear-gradient(to right, #1e3a8a, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .dark .page-title {
+        background: linear-gradient(to right, #60a5fa, #bfdbfe);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     .page-title-secondary {
-        @apply text-xl font-bold tracking-tight text-slate-800;
+        @apply text-xl font-bold tracking-tight text-slate-800 dark:text-slate-200;
     }
 
     .page-subtitle {
-        @apply mt-2 text-base font-medium text-slate-500;
+        @apply mt-2 text-base font-medium text-slate-500 dark:text-slate-400;
     }
 
     .alert-success {
-        @apply flex items-center rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm font-medium text-emerald-800 shadow-sm backdrop-blur-sm;
+        @apply flex items-center rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/80 dark:bg-emerald-900/30 p-4 text-sm font-medium text-emerald-800 dark:text-emerald-200 shadow-sm backdrop-blur-sm;
     }
 
     .module-link {
-        @apply relative flex items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 hover:text-primary-600 hover:shadow-lg hover:shadow-primary-500/20;
+        @apply relative flex items-center justify-center overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 dark:hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-lg hover:shadow-primary-500/20 dark:hover:shadow-primary-500/30;
     }
 
     .module-link::after {
         content: '';
-        @apply absolute inset-0 bg-gradient-to-r from-primary-50 to-primary-100 opacity-0 transition-opacity duration-300;
+        @apply absolute inset-0 bg-gradient-to-r from-primary-50 dark:from-primary-900/50 to-primary-100 dark:to-primary-800/50 opacity-0 transition-opacity duration-300;
         z-index: -1;
-    }
-
-    .module-link:hover::after {
-        @apply opacity-100;
     }
 
     /* Table styling for a more premium look */
     table {
-        @apply w-full text-left text-sm text-slate-600;
+        @apply w-full text-left text-sm text-slate-600 dark:text-slate-300;
     }
     thead {
-        @apply bg-slate-50/50 text-xs uppercase tracking-wider text-slate-500;
+        @apply bg-slate-50/50 dark:bg-slate-800/50 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400;
     }
     th {
-        @apply px-6 py-4 font-semibold border-b border-slate-200;
+        @apply px-6 py-4 font-semibold border-b border-slate-200 dark:border-slate-700;
     }
     td {
-        @apply px-6 py-4 border-b border-slate-100/50;
+        @apply px-6 py-4 border-b border-slate-100/50 dark:border-slate-800/50;
     }
     tr {
-        @apply transition-colors duration-200 hover:bg-primary-50/40;
+        @apply transition-colors duration-200 hover:bg-primary-50/40 dark:hover:bg-slate-700/40;
     }
 }
 

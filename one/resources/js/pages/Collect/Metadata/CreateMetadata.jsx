@@ -143,17 +143,17 @@ export default function CreateMetadata({
         <div className="grid gap-5 md:grid-cols-2">
           <TextInput
             label="Feuille"
-            name="feuille_id"
-            value={data.feuille_id}
-            error={errors.feuille_id}
+            name="feuille_nom"
+            value={data.feuille_nom}
+            error={errors.feuille_nom}
             onChange={setData}
             required
           />
           <TextInput
             label="Coupure"
-            name="coupure_id"
-            value={data.coupure_id}
-            error={errors.coupure_id}
+            name="coupure_nom"
+            value={data.coupure_nom}
+            error={errors.coupure_nom}
             onChange={setData}
             required
           />

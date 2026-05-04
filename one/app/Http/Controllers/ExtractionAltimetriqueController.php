@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use App\Models\CollectePreparation;
 use App\Models\ExtractionAltimetrique;
 use App\Models\Metadata;
 use App\Models\ModesExtraction;
 
 class ExtractionAltimetriqueController extends Controller
 {
+    use UsesPhaseFields;
+
     private function nextId(string $modelClass): int
     {
         $lastId = $modelClass::query()
@@ -32,6 +36,7 @@ class ExtractionAltimetriqueController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -73,6 +78,7 @@ class ExtractionAltimetriqueController extends Controller
             'metadata.coupure.feuille',
             'metadata.echelle',
             'modes_extraction',
+            'operateur',
         ])
             ->orderByDesc('id')
             ->get()
@@ -83,8 +89,10 @@ class ExtractionAltimetriqueController extends Controller
                 'feuille_nom' => $extraction->metadata?->coupure?->feuille?->nom,
                 'coupure_id' => $extraction->metadata?->coupure?->id,
                 'coupure_nom' => $extraction->metadata?->coupure?->nom,
+                'coupure_label' => $extraction->metadata?->coupure?->label,
                 'echelle_id' => $extraction->metadata?->echelle?->id,
                 'echelle_valeur' => $extraction->metadata?->echelle?->valeur,
+                ...$this->phaseRowFields($extraction),
                 'mnt' => $extraction->mnt,
                 'resolution' => $extraction->resolution,
                 'logiciel_utilise' => $extraction->logiciel_utilise,
@@ -104,6 +112,7 @@ class ExtractionAltimetriqueController extends Controller
             'metadata' => $metadata['all'],
             'metadataForExtraction' => $metadata['available'],
             'modesExtraction' => ModesExtraction::orderBy('nom')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('extraction'),
             'extractions' => $this->extractionRows(),
         ]);
     }
@@ -123,6 +132,7 @@ class ExtractionAltimetriqueController extends Controller
                 Rule::exists('collecte_preparation', 'metadata_id')
                     ->where(fn ($query) => $query->where('traite', true)),
             ],
+            ...$this->phaseFieldRules('extraction'),
             'mnt' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'logiciel_utilise' => 'nullable|string|max:100',
@@ -131,9 +141,12 @@ class ExtractionAltimetriqueController extends Controller
         ]);
 
         $record = DB::transaction(function () use ($validated) {
+            $previous = CollectePreparation::where('metadata_id', $validated['metadata_id'])->first();
+
             return ExtractionAltimetrique::create([
                 'id' => $this->nextId(ExtractionAltimetrique::class),
                 ...$validated,
+                ...$this->automaticPhaseDates($previous),
                 'traite' => true,
             ]);
         });
@@ -158,6 +171,7 @@ class ExtractionAltimetriqueController extends Controller
 
         $validated = $request->validate([
             'metadata_id' => 'required|exists:metadata,id|unique:extraction_altimetrique,metadata_id,' . $record->id,
+            ...$this->phaseFieldRules('extraction'),
             'mnt' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'logiciel_utilise' => 'nullable|string|max:100',
@@ -165,7 +179,12 @@ class ExtractionAltimetriqueController extends Controller
             'mode_extraction_id' => 'nullable|exists:modes_extraction,id',
         ]);
 
-        $record->update($validated);
+        $previous = CollectePreparation::where('metadata_id', $validated['metadata_id'])->first();
+
+        $record->update([
+            ...$validated,
+            ...$this->automaticPhaseDates($previous, currentRecord: $record),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json($record);

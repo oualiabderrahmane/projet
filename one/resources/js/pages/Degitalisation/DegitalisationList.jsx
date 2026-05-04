@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import FeuilleCoupureFilter from "../../Components/FeuilleCoupureFilter";
 import { TraiteBadge } from "../../Components/TraiteField";
 
 function SelectFilter({ label, value, onChange, children }) {
@@ -61,8 +62,12 @@ export default function DegitalisationList({
         feuille_nom: metadataRow.feuille_nom,
         coupure_id: metadataRow.coupure_id,
         coupure_nom: metadataRow.coupure_nom,
+        coupure_label: metadataRow.coupure_label,
         echelle_id: metadataRow.echelle_id,
         echelle_valeur: metadataRow.echelle_valeur,
+        operateur_nom: digitalisation?.operateur_nom || "",
+        date_debut: digitalisation?.date_debut || "",
+        date_fin: digitalisation?.date_fin || "",
         logiciel_utilise: digitalisation?.logiciel_utilise || "",
         version_logiciel: digitalisation?.version_logiciel || "",
         mode_realisation_id: digitalisation?.mode_realisation_id ?? null,
@@ -73,19 +78,6 @@ export default function DegitalisationList({
       };
     });
   }, [digitalisations, metadata]);
-
-  const feuilles = useMemo(
-    () => uniqueOptions(rows, "feuille_id", "feuille_nom"),
-    [rows]
-  );
-
-  const coupures = useMemo(() => {
-    const source = feuilleFilter
-      ? rows.filter((item) => String(item.feuille_id) === String(feuilleFilter))
-      : rows;
-
-    return uniqueOptions(source, "coupure_id", "coupure_nom");
-  }, [feuilleFilter, rows]);
 
   const echelles = useMemo(
     () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
@@ -153,31 +145,16 @@ export default function DegitalisationList({
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <SelectFilter
-          label="Feuille"
-          value={feuilleFilter}
-          onChange={(value) => {
-            setFeuilleFilter(value);
-            setCoupureFilter("");
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <FeuilleCoupureFilter
+          rows={rows}
+          feuilleValue={feuilleFilter}
+          coupureValue={coupureFilter}
+          onChange={({ feuilleId, coupureId }) => {
+            setFeuilleFilter(feuilleId);
+            setCoupureFilter(coupureId);
           }}
-        >
-          <option value="">Toutes les feuilles</option>
-          {feuilles.map((feuille) => (
-            <option key={feuille.id} value={feuille.id}>
-              {feuille.label}
-            </option>
-          ))}
-        </SelectFilter>
-
-        <SelectFilter label="Coupure" value={coupureFilter} onChange={setCoupureFilter}>
-          <option value="">Toutes les coupures</option>
-          {coupures.map((coupure) => (
-            <option key={coupure.id} value={coupure.id}>
-              {coupure.label}
-            </option>
-          ))}
-        </SelectFilter>
+        />
 
         <SelectFilter label="Echelle" value={echelleFilter} onChange={setEchelleFilter}>
           <option value="">Toutes les échelles</option>
@@ -223,6 +200,9 @@ export default function DegitalisationList({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Feuille</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Echelle</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Debut</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Fin</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Logiciel</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
                 <th className="px-3 py-2 text-left font-semibold text-gray-700">Mode</th>
@@ -249,6 +229,15 @@ export default function DegitalisationList({
                     </td>
                     <td className="px-3 py-2 text-gray-700">
                       {digitalisation.echelle_valeur || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {digitalisation.operateur_nom || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {digitalisation.date_debut || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">
+                      {digitalisation.date_fin || "-"}
                     </td>
                     <td className="px-3 py-2 text-gray-700">
                       {digitalisation.logiciel_utilise || "-"}

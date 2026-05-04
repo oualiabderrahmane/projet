@@ -1,11 +1,13 @@
 import { useForm } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 const emptyExtractionForm = {
   feuille_id: "",
   coupure_id: "",
   metadata_id: "",
+  operateur_id: "",
   mnt: "",
   resolution: "",
   logiciel_utilise: "",
@@ -24,6 +26,7 @@ const extractionToForm = (extractionRecord) => {
     feuille_id: idValue(extractionRecord.feuille_id),
     coupure_id: idValue(extractionRecord.coupure_id),
     metadata_id: idValue(extractionRecord.metadata_id),
+    operateur_id: idValue(extractionRecord.operateur_id),
     mnt: extractionRecord.mnt || "",
     resolution: extractionRecord.resolution || "",
     logiciel_utilise: extractionRecord.logiciel_utilise || "",
@@ -82,6 +85,7 @@ function SelectInput({ label, name, value, error, onChange, children }) {
 export default function ExtractionCreate({
   metadata = [],
   modesExtraction = [],
+  operateurs = [],
   extractionRecord = null,
   onCancelEdit,
   onSaved,
@@ -110,6 +114,7 @@ export default function ExtractionCreate({
         feuille_nom: extractionRecord.feuille_nom,
         coupure_id: extractionRecord.coupure_id,
         coupure_nom: extractionRecord.coupure_nom,
+        coupure_label: extractionRecord.coupure_label,
         echelle_id: extractionRecord.echelle_id,
         echelle_valeur: extractionRecord.echelle_valeur,
       },
@@ -163,6 +168,13 @@ export default function ExtractionCreate({
       <form onSubmit={handleSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
           <Repeted metadata={metadataForForm} data={data} setData={setData} errors={errors} />
+
+          <PhaseFields
+            data={data}
+            setData={setData}
+            errors={errors}
+            operateurs={operateurs}
+          />
 
           <TextInput
             label="Données 3D"

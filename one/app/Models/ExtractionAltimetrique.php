@@ -6,6 +6,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,10 +20,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $logiciel_utilise
  * @property string|null $version_logiciel
  * @property int|null $mode_extraction_id
+ * @property int|null $operateur_id
+ * @property Carbon|null $date_debut
+ * @property Carbon|null $date_fin
  * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property ModesExtraction|null $modes_extraction
+ * @property Operateur|null $operateur
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
  * @package App\Models
@@ -37,12 +42,18 @@ class ExtractionAltimetrique extends Model
 	protected $casts = [
 		'metadata_id' => 'int',
 		'mode_extraction_id' => 'int',
+		'operateur_id' => 'int',
+		'date_debut' => 'datetime',
+		'date_fin' => 'datetime',
 		'traite' => 'bool'
 	];
 
 	protected $fillable = [
 		'id',
 		'metadata_id',
+		'operateur_id',
+		'date_debut',
+		'date_fin',
 		'mnt',
 		'resolution',
 		'logiciel_utilise',
@@ -59,6 +70,11 @@ class ExtractionAltimetrique extends Model
 	public function modes_extraction()
 	{
 		return $this->belongsTo(ModesExtraction::class, 'mode_extraction_id');
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function coupure_fiches()

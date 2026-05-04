@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('digitalisation_2d', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'digitalisation_2d_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
             $table->foreign(['mode_realisation_id'], 'digitalisation_2d_mode_realisation_id_fkey')->references(['id'])->on('modes_realisation')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['operateur_id'], 'digitalisation_2d_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
         });
     }
 
@@ -23,9 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('digitalisation_2d', function (Blueprint $table) {
-            $table->dropForeign('digitalisation_2d_equipement_id_fkey');
             $table->dropForeign('digitalisation_2d_metadata_id_fkey');
             $table->dropForeign('digitalisation_2d_mode_realisation_id_fkey');
+            $table->dropForeign('digitalisation_2d_operateur_id_fkey');
         });
     }
 };

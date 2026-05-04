@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -10,10 +11,13 @@ use Inertia\Inertia;
 use App\Models\ControleCartographique;
 use App\Models\Metadata;
 use App\Models\NiveauxControle;
+use App\Models\RedactionCartographique;
 use App\Models\TypesControle;
 
 class ControleCartographiqueController extends Controller
 {
+    use UsesPhaseFields;
+
     private function nextId(string $modelClass): int
     {
         $lastId = $modelClass::query()
@@ -36,6 +40,7 @@ class ControleCartographiqueController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -45,6 +50,7 @@ class ControleCartographiqueController extends Controller
             'metadata.coupure.feuille',
             'types_controle',
             'niveaux_controle',
+            'operateur',
         ])
             ->orderByDesc('id')
             ->get()
@@ -53,10 +59,12 @@ class ControleCartographiqueController extends Controller
                 'metadata_id' => $controle->metadata_id,
                 'feuille_nom' => $controle->metadata?->coupure?->feuille?->nom,
                 'coupure_nom' => $controle->metadata?->coupure?->nom,
+                'coupure_label' => $controle->metadata?->coupure?->label,
                 'type_controle_id' => $controle->type_controle_id,
                 'type_controle_nom' => $controle->types_controle?->nom,
                 'niveau_controle_id' => $controle->niveau_controle_id,
                 'niveau_controle_nom' => $controle->niveaux_controle?->nom,
+                ...$this->phaseRowFields($controle),
                 'date_controle' => $controle->date_controle?->format('Y-m-d'),
                 'date_edition' => $controle->date_edition?->format('Y-m-d'),
             ])
@@ -66,6 +74,7 @@ class ControleCartographiqueController extends Controller
             'metadata' => $metadata,
             'typesControle' => TypesControle::orderBy('id')->get(['id', 'nom']),
             'niveauxControle' => NiveauxControle::orderBy('nom')->get(['id', 'nom']),
+            'operateurs' => $this->operateurRows('controle'),
             'controlesEffectues' => $controlesEffectues,
         ]);
     }
@@ -90,6 +99,7 @@ class ControleCartographiqueController extends Controller
             ],
             'type_controle_id' => 'required|exists:types_controle,id',
             'niveau_controle_id' => 'required|exists:niveaux_controle,id',
+            ...$this->phaseFieldRules('controle'),
             'date_controle' => 'nullable|date',
             'date_edition' => 'nullable|date',
         ]);
@@ -105,10 +115,14 @@ class ControleCartographiqueController extends Controller
                 ]);
             }
 
+            $previous = RedactionCartographique::where('metadata_id', $validated['metadata_id'])->first();
+
             $record = new ControleCartographique([
                 'metadata_id' => $validated['metadata_id'],
                 'type_controle_id' => $validated['type_controle_id'],
                 'niveau_controle_id' => $validated['niveau_controle_id'],
+                'operateur_id' => $validated['operateur_id'] ?? null,
+                ...$this->automaticPhaseDates($previous),
                 'date_controle' => $validated['date_controle'] ?? null,
                 'date_edition' => $validated['date_edition'] ?? null,
             ]);

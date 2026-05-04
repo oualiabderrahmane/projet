@@ -1,11 +1,13 @@
 import { useForm } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 const emptyTraitementForm = {
   feuille_id: "",
   coupure_id: "",
   metadata_id: "",
+  operateur_id: "",
   logiciel_utilise: "",
   version_logiciel: "",
   mode_realisation_id: "",
@@ -24,6 +26,7 @@ const traitementToForm = (traitementRecord) => {
     feuille_id: idValue(traitementRecord.feuille_id),
     coupure_id: idValue(traitementRecord.coupure_id),
     metadata_id: idValue(traitementRecord.metadata_id),
+    operateur_id: idValue(traitementRecord.operateur_id),
     logiciel_utilise: traitementRecord.logiciel_utilise || "",
     version_logiciel: traitementRecord.version_logiciel || "",
     mode_realisation_id: idValue(traitementRecord.mode_realisation_id),
@@ -83,6 +86,7 @@ export default function TraitmentVecteurs({
   metadata = [],
   modesRealisation = [],
   formats = [],
+  operateurs = [],
   traitementRecord = null,
   onCancelEdit,
   onSaved,
@@ -111,6 +115,7 @@ export default function TraitmentVecteurs({
         feuille_nom: traitementRecord.feuille_nom,
         coupure_id: traitementRecord.coupure_id,
         coupure_nom: traitementRecord.coupure_nom,
+        coupure_label: traitementRecord.coupure_label,
         echelle_id: traitementRecord.echelle_id,
         echelle_valeur: traitementRecord.echelle_valeur,
       },
@@ -164,6 +169,13 @@ export default function TraitmentVecteurs({
       <form onSubmit={handleSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
           <Repeted metadata={metadataForForm} data={data} setData={setData} errors={errors} />
+
+          <PhaseFields
+            data={data}
+            setData={setData}
+            errors={errors}
+            operateurs={operateurs}
+          />
 
           <TextInput
             label="Logiciel utilisé"

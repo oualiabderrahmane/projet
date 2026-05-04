@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('validation_export', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'validation_export_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
+            $table->foreign(['operateur_id'], 'validation_export_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
         });
     }
 
@@ -23,6 +24,7 @@ return new class extends Migration
     {
         Schema::table('validation_export', function (Blueprint $table) {
             $table->dropForeign('validation_export_metadata_id_fkey');
+            $table->dropForeign('validation_export_operateur_id_fkey');
         });
     }
 };

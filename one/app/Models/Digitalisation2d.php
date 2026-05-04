@@ -6,6 +6,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,12 +19,16 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $version_logiciel
  * @property int|null $mode_realisation_id
  * @property int|null $format_id
+ * @property int|null $operateur_id
+ * @property Carbon|null $date_debut
+ * @property Carbon|null $date_fin
  * @property int|null $equipement_id
  * @property bool $traite
  * 
  * @property Metadata $metadata
  * @property ModesRealisation|null $modes_realisation
  * @property Format|null $format
+ * @property Operateur|null $operateur
  * @property Equipement|null $equipement
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -41,6 +46,9 @@ class Digitalisation2d extends Model
 		'metadata_id' => 'int',
 		'mode_realisation_id' => 'int',
 		'format_id' => 'int',
+		'operateur_id' => 'int',
+		'date_debut' => 'datetime',
+		'date_fin' => 'datetime',
 		'equipement_id' => 'int',
 		'traite' => 'bool'
 	];
@@ -48,6 +56,9 @@ class Digitalisation2d extends Model
 	protected $fillable = [
 		'id',
 		'metadata_id',
+		'operateur_id',
+		'date_debut',
+		'date_fin',
 		'logiciel_utilise',
 		'version_logiciel',
 		'mode_realisation_id',
@@ -69,6 +80,11 @@ class Digitalisation2d extends Model
 	public function format()
 	{
 		return $this->belongsTo(Format::class);
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function equipement()

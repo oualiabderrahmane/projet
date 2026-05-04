@@ -6,6 +6,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,9 +16,13 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property int $metadata_id
  * @property int|null $type_donnees_id
+ * @property int|null $operateur_id
+ * @property Carbon|null $date_debut
+ * @property Carbon|null $date_fin
  * @property bool $traite
  *
  * @property Metadata $metadata
+ * @property Operateur|null $operateur
  * @property TypesDonneesSpatiale|null $types_donnees_spatiale
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -33,18 +38,29 @@ class CompletementSpatial extends Model
 	protected $casts = [
 		'id' => 'int',
 		'metadata_id' => 'int',
+		'operateur_id' => 'int',
+		'date_debut' => 'datetime',
+		'date_fin' => 'datetime',
 		'traite' => 'bool',
 	];
 
 	protected $fillable = [
 		'id',
 		'metadata_id',
+		'operateur_id',
+		'date_debut',
+		'date_fin',
 		'traite',
 	];
 
 	public function metadata()
 	{
 		return $this->belongsTo(Metadata::class);
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function types()

@@ -1,11 +1,13 @@
 import { useForm } from "@inertiajs/react";
 import { useEffect, useMemo } from "react";
+import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
 const emptyDigitalisationForm = {
   feuille_id: "",
   coupure_id: "",
   metadata_id: "",
+  operateur_id: "",
   logiciel_utilise: "",
   version_logiciel: "",
   mode_realisation_id: "",
@@ -23,6 +25,7 @@ const digitalisationToForm = (digitalisationRecord) => {
     feuille_id: idValue(digitalisationRecord.feuille_id),
     coupure_id: idValue(digitalisationRecord.coupure_id),
     metadata_id: idValue(digitalisationRecord.metadata_id),
+    operateur_id: idValue(digitalisationRecord.operateur_id),
     logiciel_utilise: digitalisationRecord.logiciel_utilise || "",
     version_logiciel: digitalisationRecord.version_logiciel || "",
     mode_realisation_id: idValue(digitalisationRecord.mode_realisation_id),
@@ -81,6 +84,7 @@ export default function Digitalisation({
   metadata = [],
   modesRealisation = [],
   formats = [],
+  operateurs = [],
   digitalisationRecord = null,
   onCancelEdit,
   onSaved,
@@ -109,6 +113,7 @@ export default function Digitalisation({
         feuille_nom: digitalisationRecord.feuille_nom,
         coupure_id: digitalisationRecord.coupure_id,
         coupure_nom: digitalisationRecord.coupure_nom,
+        coupure_label: digitalisationRecord.coupure_label,
         echelle_id: digitalisationRecord.echelle_id,
         echelle_valeur: digitalisationRecord.echelle_valeur,
       },
@@ -162,6 +167,13 @@ export default function Digitalisation({
       <form onSubmit={handleSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
           <Repeted metadata={metadataForForm} data={data} setData={setData} errors={errors} />
+
+          <PhaseFields
+            data={data}
+            setData={setData}
+            errors={errors}
+            operateurs={operateurs}
+          />
 
           <TextInput
             label="Logiciel utilisé"

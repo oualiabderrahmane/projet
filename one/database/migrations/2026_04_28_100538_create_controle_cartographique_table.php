@@ -16,6 +16,9 @@ return new class extends Migration
             $table->bigInteger('metadata_id')->unique('controle_cartographique_metadata_id_key');
             $table->bigInteger('type_controle_id')->nullable();
             $table->bigInteger('niveau_controle_id')->nullable();
+            $table->unsignedBigInteger('operateur_id')->nullable();
+            $table->date('date_debut')->nullable();
+            $table->date('date_fin')->nullable();
             $table->date('date_controle')->nullable();
             $table->date('date_edition')->nullable();
         });

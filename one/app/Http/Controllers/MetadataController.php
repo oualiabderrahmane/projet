@@ -72,7 +72,7 @@ private function metadataRows(Request $request)
         })
 
         ->when($filters['type_releve_id'] ?? null, function ($query, $typeReleveId) {
-            $query->where('types_releve_id', $typeReleveId);
+            $query->where('type_releve_id', $typeReleveId);
         })
 
         ->when($filters['echelle_id'] ?? null, function ($query, $echelleId) {
@@ -85,15 +85,12 @@ private function metadataRows(Request $request)
             'id' => $metadata->id,
             'feuille_id' => $metadata->coupure?->feuille?->id,
             'feuille_nom' => $metadata->coupure?->feuille?->nom,
-
             'coupure_id' => $metadata->coupure?->id,
             'coupure_nom' => $metadata->coupure?->nom,
-
+            'coupure_label' => $metadata->coupure?->label,
             'date_creation_metadata' => $metadata->date_creation_metadata?->format('Y-m-d'),
-
             'pays_id' => $metadata->pay?->id,
             'pays_nom' => $metadata->pay?->nom,
-
             'systeme_reference_id' => $metadata->systemes_reference?->id,
             'systeme_reference_nom' => $metadata->systemes_reference?->nom,
             'systeme_reference_type' => $metadata->systemes_reference?->type,
@@ -170,6 +167,7 @@ public function byCoupure($coupure_id)
     $validated = $request->validate([
         'feuille_nom' => 'required|string|max:100',
         'coupure_nom' => 'required|string|max:100',
+        'coupure_label' => 'required|string|max:100',
         'pays_id' => 'nullable|exists:pays,id',
         'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
         'type_releve_id' => 'nullable|exists:types_releve,id',
@@ -180,6 +178,7 @@ public function byCoupure($coupure_id)
     $metadata = DB::transaction(function () use ($validated) {
         $feuilleNom = trim($validated['feuille_nom']);
         $coupureNom = trim($validated['coupure_nom']);
+        $coupureLabel = trim($validated['coupure_label']);
 
         // 1. Check or create Feuille
         $feuille = Feuille::where('nom', $feuilleNom)->first();
@@ -200,8 +199,11 @@ public function byCoupure($coupure_id)
             $coupure = Coupure::create([
                 'id' => $this->nextId(Coupure::class),
                 'nom' => $coupureNom,
+                'label' => $coupureLabel,
                 'feuille_id' => $feuille->id
             ]);
+        } elseif ($coupure->label !== $coupureLabel) {
+            $coupure->update(['label' => $coupureLabel]);
         }
 
         // 3. Create Metadata (no need to check usually)
@@ -230,6 +232,7 @@ public function update(Request $request, Metadata $metadata)
     $validated = $request->validate([
         'feuille_nom' => 'required|string|max:100',
         'coupure_nom' => 'required|string|max:100',
+        'coupure_label' => 'required|string|max:100',
         'pays_id' => 'nullable|exists:pays,id',
         'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
         'type_releve_id' => 'nullable|exists:types_releve,id',
@@ -240,6 +243,7 @@ public function update(Request $request, Metadata $metadata)
     DB::transaction(function () use ($validated, $metadata) {
         $feuilleNom = trim($validated['feuille_nom']);
         $coupureNom = trim($validated['coupure_nom']);
+        $coupureLabel = trim($validated['coupure_label']);
         $feuille = Feuille::where('nom', $feuilleNom)->first();
 
         if (!$feuille) {
@@ -257,8 +261,11 @@ public function update(Request $request, Metadata $metadata)
             $coupure = Coupure::create([
                 'id' => $this->nextId(Coupure::class),
                 'nom' => $coupureNom,
+                'label' => $coupureLabel,
                 'feuille_id' => $feuille->id
             ]);
+        } elseif ($coupure->label !== $coupureLabel) {
+            $coupure->update(['label' => $coupureLabel]);
         }
 
         $metadata->update([

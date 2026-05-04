@@ -128,7 +128,11 @@ Route::middleware(['auth', 'role:redaction'])->group(function () {
         ->name('validation-export.create');
     Route::post('/validation-export/download', [ValidationExportController::class, 'download'])
         ->name('validation-export.download');
+    Route::post('/validation-export/pdf', [ValidationExportController::class, 'downloadPdf'])
+        ->name('validation-export.pdf');
 
     Route::get('/coupure-fiche/{id}/xml', [FinalleController::class, 'exportXml'])
         ->name('coupure-fiche.xml');
+    Route::get('/coupure-fiche/{id}/pdf', [FinalleController::class, 'exportPdf'])
+        ->name('coupure-fiche.pdf');
 });

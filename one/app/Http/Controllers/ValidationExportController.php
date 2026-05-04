@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsesPhaseFields;
 use App\Models\CollectePreparation;
 use App\Models\CompletementSpatial;
 use App\Models\ControleCartographique;
@@ -19,6 +20,8 @@ use Inertia\Inertia;
 
 class ValidationExportController extends Controller
 {
+    use UsesPhaseFields;
+
     private function nextId(string $modelClass): int
     {
         $lastId = $modelClass::query()
@@ -42,6 +45,7 @@ class ValidationExportController extends Controller
                 'feuille_nom' => $metadata->coupure?->feuille?->nom,
                 'coupure_id' => $metadata->coupure?->id,
                 'coupure_nom' => $metadata->coupure?->nom,
+                'coupure_label' => $metadata->coupure?->label,
                 'echelle_id' => $metadata->echelle?->id,
                 'echelle_valeur' => $metadata->echelle?->valeur,
             ])
@@ -53,7 +57,8 @@ class ValidationExportController extends Controller
         return Metadata::with([
             'coupure.feuille',
             'validation_exports',
-            'coupure_fiches.validation_export',
+            'validation_exports.operateur',
+            'coupure_fiches.validation_export.operateur',
         ])
             ->whereHas('redaction_cartographiques', fn ($query) => $query->where('traite', true))
             ->whereHas('controle_cartographiques')
@@ -68,6 +73,9 @@ class ValidationExportController extends Controller
                     'fiche_id' => $fiche?->id,
                     'feuille_nom' => $metadata->coupure?->feuille?->nom,
                     'coupure_nom' => $metadata->coupure?->nom,
+                    'coupure_label' => $metadata->coupure?->label,
+                    'operateur_id' => $validationExport?->operateur_id,
+                    'operateur_nom' => $validationExport?->operateur?->nom,
                     'emplacement' => $validationExport?->emplacement,
                 ];
             })
@@ -79,12 +87,13 @@ class ValidationExportController extends Controller
         return Inertia::render('Redaction/Validation', [
             'metadata' => $this->metadataRows(),
             'fiches' => $this->ficheRows(),
+            'operateurs' => $this->operateurRows('validation'),
         ]);
     }
 
-    public function download(Request $request)
+    private function validateExportRequest(Request $request): array
     {
-        $validated = $request->validate([
+        return $request->validate([
             'feuille_id' => 'required|exists:feuilles,id',
             'coupure_id' => 'required|exists:coupures,id',
             'metadata_id' => [
@@ -94,10 +103,14 @@ class ValidationExportController extends Controller
                     ->where(fn ($query) => $query->where('traite', true)),
                 Rule::exists('controle_cartographique', 'metadata_id'),
             ],
+            ...$this->phaseFieldRules('validation'),
             'emplacement' => 'nullable|string|max:255',
         ]);
+    }
 
-        $fiche = DB::transaction(function () use ($validated) {
+    private function saveFiche(array $validated, string $format): CoupureFiche
+    {
+        return DB::transaction(function () use ($validated, $format) {
             $metadata = Metadata::with('coupure.feuille')->findOrFail($validated['metadata_id']);
 
             if (
@@ -109,22 +122,24 @@ class ValidationExportController extends Controller
 
             $validationExport = ValidationExport::where('metadata_id', $metadata->id)->first();
 
-            if (!$validationExport) {
+            if (! $validationExport) {
                 $validationExport = new ValidationExport([
                     'metadata_id' => $metadata->id,
+                    'operateur_id' => $validated['operateur_id'] ?? null,
                     'emplacement' => $validated['emplacement'] ?? null,
-                    'format' => 'xml',
+                    'format' => $format,
                 ]);
                 $validationExport->id = $this->nextId(ValidationExport::class);
                 $validationExport->save();
             } else {
                 $validationExport->update([
+                    'operateur_id' => $validated['operateur_id'] ?? null,
                     'emplacement' => $validated['emplacement'] ?? null,
-                    'format' => 'xml',
+                    'format' => $format,
                 ]);
             }
 
-            $fiche = CoupureFiche::where('coupure_id', $metadata->coupure_id)->first() ?: new CoupureFiche();
+            $fiche = CoupureFiche::where('coupure_id', $metadata->coupure_id)->first() ?: new CoupureFiche;
 
             $fiche->fill([
                 'coupure_id' => $metadata->coupure_id,
@@ -144,7 +159,19 @@ class ValidationExportController extends Controller
 
             return $fiche;
         });
+    }
+
+    public function download(Request $request)
+    {
+        $fiche = $this->saveFiche($this->validateExportRequest($request), 'xml');
 
         return redirect()->route('coupure-fiche.xml', $fiche);
+    }
+
+    public function downloadPdf(Request $request)
+    {
+        $fiche = $this->saveFiche($this->validateExportRequest($request), 'pdf');
+
+        return redirect()->route('coupure-fiche.pdf', $fiche);
     }
 }

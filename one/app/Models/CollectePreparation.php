@@ -6,6 +6,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,11 +18,15 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $imagerie
  * @property string|null $resolution
  * @property int|null $type_osm_id
+ * @property int|null $operateur_id
+ * @property Carbon|null $date_debut
+ * @property Carbon|null $date_fin
  * @property int|null $geonames_annee_mise_a_jour
  * @property string|null $gadm_version
  * @property bool $traite
  * 
  * @property Metadata $metadata
+ * @property Operateur|null $operateur
  * @property TypesOsm|null $types_osm
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -38,6 +43,9 @@ class CollectePreparation extends Model
 		'id' => 'int',
 		'metadata_id' => 'int',
 		'type_osm_id' => 'int',
+		'operateur_id' => 'int',
+		'date_debut' => 'datetime',
+		'date_fin' => 'datetime',
 		'geonames_annee_mise_a_jour' => 'int',
 		'traite' => 'bool'
 	];
@@ -45,6 +53,9 @@ class CollectePreparation extends Model
 	protected $fillable = [
 		'id',
 		'metadata_id',
+		'operateur_id',
+		'date_debut',
+		'date_fin',
 		'imagerie',
 		'resolution',
 		'type_osm_id',
@@ -61,6 +72,11 @@ class CollectePreparation extends Model
 	public function types_osm()
 	{
 		return $this->belongsTo(TypesOsm::class, 'type_osm_id');
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function coupure_fiches()

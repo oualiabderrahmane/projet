@@ -9,6 +9,7 @@ export default function HomeDigitalisation({
   metadataForDigitalisation = [],
   modesRealisation = [],
   formats = [],
+  operateurs = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -41,6 +42,7 @@ export default function HomeDigitalisation({
               metadata={metadataForDigitalisation}
               modesRealisation={modesRealisation}
               formats={formats}
+              operateurs={operateurs}
               digitalisationRecord={selectedDigitalisation}
               onCancelEdit={() => setSelectedDigitalisation(null)}
               onSaved={() => setSelectedDigitalisation(null)}

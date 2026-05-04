@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('collecte_preparation', function (Blueprint $table) {
             $table->bigInteger('id')->primary();
             $table->bigInteger('metadata_id')->unique('collecte_preparation_metadata_id_key');
+            $table->unsignedBigInteger('operateur_id')->nullable();
+            $table->date('date_debut')->nullable();
+            $table->date('date_fin')->nullable();
             $table->string('imagerie', 150)->nullable();
             $table->string('resolution', 100)->nullable();
             $table->bigInteger('type_osm_id')->nullable();

@@ -17,12 +17,16 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $metadata_id
  * @property int|null $type_controle_id
  * @property int|null $niveau_controle_id
+ * @property int|null $operateur_id
+ * @property Carbon|null $date_debut
+ * @property Carbon|null $date_fin
  * @property Carbon|null $date_controle
  * @property Carbon|null $date_edition
  * 
  * @property Metadata $metadata
  * @property TypesControle|null $types_controle
  * @property NiveauxControle|null $niveaux_controle
+ * @property Operateur|null $operateur
  * @property Collection|ControleNiveaux[] $controle_niveauxes
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -32,11 +36,16 @@ class ControleCartographique extends Model
 {
 	protected $table = 'controle_cartographique';
 	public $timestamps = false;
+	public $incrementing = false;
+	protected $keyType = 'int';
 
 	protected $casts = [
 		'metadata_id' => 'int',
 		'type_controle_id' => 'int',
 		'niveau_controle_id' => 'int',
+		'operateur_id' => 'int',
+		'date_debut' => 'datetime',
+		'date_fin' => 'datetime',
 		'date_controle' => 'datetime',
 		'date_edition' => 'datetime'
 	];
@@ -45,6 +54,9 @@ class ControleCartographique extends Model
 		'metadata_id',
 		'type_controle_id',
 		'niveau_controle_id',
+		'operateur_id',
+		'date_debut',
+		'date_fin',
 		'date_controle',
 		'date_edition'
 	];
@@ -62,6 +74,11 @@ class ControleCartographique extends Model
 	public function niveaux_controle()
 	{
 		return $this->belongsTo(NiveauxControle::class, 'niveau_controle_id');
+	}
+
+	public function operateur()
+	{
+		return $this->belongsTo(Operateur::class);
 	}
 
 	public function controle_niveauxes()

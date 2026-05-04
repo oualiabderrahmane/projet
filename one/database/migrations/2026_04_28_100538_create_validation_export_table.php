@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('validation_export', function (Blueprint $table) {
             $table->bigInteger('id')->primary();
             $table->bigInteger('metadata_id')->unique('validation_export_metadata_id_key');
+            $table->unsignedBigInteger('operateur_id')->nullable();
             $table->string('emplacement')->nullable();
             $table->string('format', 20)->nullable();
         });
