@@ -1,5 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import TimedFlash from "../../Components/TimedFlash";
 import TraitmentList from "./TraitmentList";
 import TraitmentVecteurs from "./TraitmentVecteurs";
 
@@ -9,7 +10,9 @@ export default function HomeTraitment({
   metadataForTraitement = [],
   modesRealisation = [],
   formats = [],
+  logicielsUtilises = [],
   operateurs = [],
+    echelles = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -28,20 +31,17 @@ export default function HomeTraitment({
         <div className="page-container">
           <div className="mb-6">
             <h1 className="page-title">Traitement vecteur</h1>
-            <p className="page-subtitle">Creation, filtrage et mise a jour dans un seul ecran.</p>
+            <p className="page-subtitle">Création, filtrage et mise à jour dans un seul écran.</p>
           </div>
 
-          {flashSuccess && (
-            <div className="alert-success">
-              {flashSuccess}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           <div className="space-y-6">
             <TraitmentVecteurs
               metadata={metadataForTraitement}
               modesRealisation={modesRealisation}
               formats={formats}
+              logicielsUtilises={logicielsUtilises}
               operateurs={operateurs}
               traitementRecord={selectedTraitement}
               onCancelEdit={() => setSelectedTraitement(null)}
@@ -50,6 +50,9 @@ export default function HomeTraitment({
             <TraitmentList
               metadata={metadata}
               traitements={traitements}
+                modesRealisation={modesRealisation}
+                formats={formats}
+                    echelles={echelles}
               editingTraitementId={selectedTraitement?.id}
               onEdit={handleEdit}
             />

@@ -20,7 +20,7 @@ export default function HomeCollect() {
               href="/collect/preparation"
               className="module-link"
             >
-              Collecte et preparation
+              Collecte et préparation
             </Link>
           </div>
         </div>

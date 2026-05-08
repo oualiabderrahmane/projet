@@ -9,10 +9,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Format;
+use App\Models\LogicielUtilise;
 use App\Models\Metadata;
 use App\Models\RedactionCartographique;
 use App\Models\TraitementVecteur;
-
+use App\Models\Echelle;
 class RedactionCartographiqueController extends Controller
 {
     use UsesPhaseFields;
@@ -21,7 +22,7 @@ class RedactionCartographiqueController extends Controller
         'Geotif',
         'pdf',
         'ecw',
-        'autre',
+        'Autre',
     ];
 
     private function nextId(string $modelClass): int
@@ -109,8 +110,10 @@ class RedactionCartographiqueController extends Controller
             'metadata' => $metadata['all'],
             'metadataForRedaction' => $metadata['available'],
             'formats' => Format::whereIn('nom', self::REDACTION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'logicielsUtilises' => LogicielUtilise::orderBy('id')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('redaction'),
             'redactions' => $redactions,
+            'echelles'=>Echelle::all(['id', 'valeur']),
         ];
     }
 
@@ -205,8 +208,26 @@ class RedactionCartographiqueController extends Controller
             ->with('success', 'Rédaction cartographique modifiée avec succès.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return RedactionCartographique::destroy($id);
+        try {
+            $deleted = RedactionCartographique::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('redaction-cartographique.home')
+                ->with('error', 'Suppression impossible : cette redaction est utilisee ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('redaction-cartographique.home')
+            ->with('success', 'Redaction supprimee avec succes.');
     }
 }

@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property Metadata $metadata
  * @property ModesRealisation|null $modes_realisation
  * @property Format|null $format
- * @property Operateur|null $operateur
+ * @property User|null $operateur
  * @property Equipement|null $equipement
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -84,7 +84,7 @@ class Digitalisation2d extends Model
 
 	public function operateur()
 	{
-		return $this->belongsTo(Operateur::class);
+		return $this->belongsTo(User::class, 'operateur_id');
 	}
 
 	public function equipement()
@@ -94,6 +94,6 @@ class Digitalisation2d extends Model
 
 	public function coupure_fiches()
 	{
-		return $this->hasMany(CoupureFiche::class);
+		return $this->hasMany(CoupureFiche::class, 'digitalisation_2d_id');
 	}
 }

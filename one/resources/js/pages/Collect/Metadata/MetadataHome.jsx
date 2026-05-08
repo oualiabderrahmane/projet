@@ -1,5 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import TimedFlash from "../../../Components/TimedFlash";
 import CreateMetadata from "./CreateMetadata";
 import MetadataList from "./MetadataList";
 
@@ -21,22 +22,18 @@ export default function MetadataHome({
 
   return (
     <>
-      <Head title="métadonnées" />
+      <Head title="Métadonnées" />
 
       <main className="page-shell">
         <div className="page-container">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="page-title">Métadonnées DPG</h1>
-              <p>Creation des métadonnées</p>
+              <p>Création des métadonnées</p>
             </div>
           </div>
 
-          {flashSuccess && (
-            <div className="alert-success">
-              {flashSuccess}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           <div className="space-y-6">
             <CreateMetadata
@@ -48,11 +45,15 @@ export default function MetadataHome({
               onCancelEdit={() => setSelectedMetadata(null)}
               onSaved={() => setSelectedMetadata(null)}
             />
-            <MetadataList
-              metadata={metadata}
-              editingMetadataId={selectedMetadata?.id}
-              onEdit={handleEdit}
-            />
+           <MetadataList
+  metadata={metadata}
+  pays={pays}
+  systemesReference={systemesReference}
+  typesReleve={typesReleve}
+  echelles={echelles}
+  editingMetadataId={selectedMetadata?.id}
+  onEdit={handleEdit}
+/>
           </div>
         </div>
       </main>

@@ -105,7 +105,7 @@ class CoupureFiche extends Model
 
 	public function digitalisation2d()
 	{
-		return $this->belongsTo(Digitalisation2d::class);
+		return $this->belongsTo(Digitalisation2d::class, 'digitalisation_2d_id');
 	}
 
 	public function completement_spatial()

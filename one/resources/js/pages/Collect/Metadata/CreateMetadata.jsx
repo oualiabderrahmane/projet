@@ -1,12 +1,17 @@
 import { useForm } from "@inertiajs/react";
 import { useEffect } from "react";
-
+import Input from "@/Components/Input";
+import SelectInput from "@/Components/SelectInput";
 const today = new Date().toISOString().slice(0, 10);
 
 const emptyMetadataForm = {
   feuille_nom: "",
   coupure_nom: "",
   coupure_label: "",
+  latitude_nord: "",
+  longitude_ouest: "",
+  longitude_est: "",
+  latitude_sud: "",
   pays_id: "",
   systeme_reference_id: "",
   type_releve_id: "",
@@ -23,6 +28,10 @@ const metadataToForm = (metadataRecord) => {
     feuille_nom: metadataRecord.feuille_nom || "",
     coupure_nom: metadataRecord.coupure_nom || "",
     coupure_label: metadataRecord.coupure_label || "",
+    latitude_nord: metadataRecord.latitude_nord || "",
+    longitude_ouest: metadataRecord.longitude_ouest || "",
+    longitude_est: metadataRecord.longitude_est || "",
+    latitude_sud: metadataRecord.latitude_sud || "",
     pays_id: metadataRecord.pays_id ? String(metadataRecord.pays_id) : "",
     systeme_reference_id: metadataRecord.systeme_reference_id
       ? String(metadataRecord.systeme_reference_id)
@@ -38,45 +47,86 @@ function ErrorMessage({ message }) {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 }
 
-function TextInput({ label, name, value, error, onChange, type = "text", required = false }) {
+
+function CoordinateField({ label, name, value, error, onChange }) {
   return (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+    <div className="min-w-0">
+      <label
+        htmlFor={name}
+        className="mb-1 block text-center text-xs font-bold text-slate-900"
+      >
         {label}
       </label>
       <input
         id={name}
         name={name}
-        type={type}
+        type="text"
         value={value}
-        required={required}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="block w-full rounded-none border border-slate-700 bg-white/80 px-3 py-2 text-center text-sm font-semibold text-slate-900 shadow-sm outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
   );
 }
 
-function SelectInput({ label, name, value, error, onChange, children }) {
+function CoordinateBox({ data, errors, onChange }) {
   return (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
-        {label}
-      </label>
-      <select
-        id={name}
-        name={name}
-        value={value}
-        onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-      >
-        {children}
-      </select>
-      <ErrorMessage message={error} />
+    <div className="md:col-span-2">
+      <div className="rounded border border-slate-700 bg-white/80 p-4 shadow-sm">
+        <p className="mb-4 text-sm font-semibold text-slate-700">Coordonnées de la coupure</p>
+
+        <div className="mx-auto grid max-w-2xl grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr] sm:gap-x-4 sm:gap-y-5">
+          <div className="sm:col-start-2 sm:w-52">
+            <CoordinateField
+              label="Latitude nord"
+              name="latitude_nord"
+              value={data.latitude_nord}
+              error={errors.latitude_nord}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="sm:col-start-1">
+            <CoordinateField
+              label="Longitude ouest"
+              name="longitude_ouest"
+              value={data.longitude_ouest}
+              error={errors.longitude_ouest}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="hidden justify-center sm:col-start-2 sm:flex">
+            <span className="h-5 w-px bg-slate-900" aria-hidden="true" />
+          </div>
+
+          <div className="sm:col-start-3">
+            <CoordinateField
+              label="Longitude est"
+              name="longitude_est"
+              value={data.longitude_est}
+              error={errors.longitude_est}
+              onChange={onChange}
+            />
+          </div>
+
+          <div className="sm:col-start-2 sm:w-52">
+            <CoordinateField
+              label="Latitude sud"
+              name="latitude_sud"
+              value={data.latitude_sud}
+              error={errors.latitude_sud}
+              onChange={onChange}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+
 
 const systemeReferenceLabel = (systemeReference) =>
   [
@@ -132,86 +182,92 @@ export default function CreateMetadata({
   };
 
   return (
-    <section className="rounded bg-white p-6 shadow">
+    <section className="card">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-slate-900">
           {isEditing ? "Modifier la métadonnée" : "Créer une métadonnée"}
         </h2>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
-          <TextInput
-            label="Feuille"
-            name="feuille_nom"
-            value={data.feuille_nom}
-            error={errors.feuille_nom}
-            onChange={setData}
-            required
-          />
-          <TextInput
-            label="Coupure"
-            name="coupure_nom"
-            value={data.coupure_nom}
-            error={errors.coupure_nom}
-            onChange={setData}
-            required
-          />
-           <TextInput
-            label="Nom de La Coupure"
-            name="coupure_label"
-            value={data.coupure_label}
-            error={errors.coupure_label}
-            onChange={setData}
-            required
-          />
+        <Input
+  label="Feuille"
+  name="feuille_nom"
+  value={data.feuille_nom}
+  error={errors.feuille_nom}
+  onChange={setData}
+  required
+/>
 
+        <Input
+  label="Coupure"
+  name="coupure_nom"
+  value={data.coupure_nom}
+  error={errors.coupure_nom}
+  onChange={setData}
+  required
+/>
 
-          <TextInput
-            label="Date de creation"
-            name="date_creation_metadata"
-            type="date"
-            value={data.date_creation_metadata}
-            error={errors.date_creation_metadata}
-            onChange={setData}
-            required
-          />
+        <Input
+  label="Nom de la coupure"
+  name="coupure_label"
+  value={data.coupure_label}
+  error={errors.coupure_label}
+  onChange={setData}
+  required
+/>
 
-          <SelectInput
-            label="Pays"
-            name="pays_id"
-            value={data.pays_id}
-            error={errors.pays_id}
-            onChange={setData}
-          > <option value=""></option>
-            {pays.map((pay) => (
-              <option key={pay.id} value={pay.id}>
-                {pay.nom}
-              </option>
-            ))}
-          </SelectInput>
+       <CoordinateBox data={data} errors={errors} onChange={setData} />
 
-          <SelectInput
+        <Input
+               label="Date de création"
+  name="date_creation_metadata"
+  type="date"
+  value={data.date_creation_metadata}
+  error={errors.date_creation_metadata}
+  onChange={setData}
+  required
+                                                   />
+
+        <SelectInput
+  label="Pays"
+  name="pays_id"
+  value={data.pays_id}
+  error={errors.pays_id}
+  onChange={setData}
+  required
+>
+  <option value="">Sélectionner un pays</option>
+  {pays.map((pay) => (
+    <option key={pay.id} value={pay.id}>
+      {pay.nom}
+    </option>
+  ))}
+        </SelectInput>
+
+        <SelectInput
             label="Système de référence"
             name="systeme_reference_id"
             value={data.systeme_reference_id}
             error={errors.systeme_reference_id}
             onChange={setData}
-          >
+            required>
              <option value=""></option>
             {systemesReference.map((systemeReference) => (
               <option key={systemeReference.id} value={systemeReference.id}>
                 {systemeReferenceLabel(systemeReference)}
               </option>
             ))}
-          </SelectInput>
+        </SelectInput>
 
-          <SelectInput
+        <SelectInput
             label="Type de relevé généalogique"
             name="type_releve_id"
             value={data.type_releve_id}
             error={errors.type_releve_id}
             onChange={setData}
+            required
           >
              <option value=""></option>
             {typesReleve.map((typeReleve) => (
@@ -219,14 +275,15 @@ export default function CreateMetadata({
                 {typeReleve.nom}
               </option>
             ))}
-          </SelectInput>
+        </SelectInput>
 
-          <SelectInput
+        <SelectInput
             label="Échelle"
             name="echelle_id"
             value={data.echelle_id}
             error={errors.echelle_id}
             onChange={setData}
+            required
           >
             <option value=""></option>
             {echelles.map((echelle) => (
@@ -234,7 +291,7 @@ export default function CreateMetadata({
                 {echelle.valeur}
               </option>
             ))}
-          </SelectInput>
+        </SelectInput>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
@@ -243,7 +300,7 @@ export default function CreateMetadata({
               type="button"
               onClick={handleCancelEdit}
               disabled={processing}
-              className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-secondary"
             >
               Annuler
             </button>
@@ -251,7 +308,7 @@ export default function CreateMetadata({
           <button
             type="submit"
             disabled={processing}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary"
           >
             {processing
               ? "Enregistrement..."
@@ -265,4 +322,4 @@ export default function CreateMetadata({
   );
 }
 
-export { ErrorMessage, SelectInput, TextInput, systemeReferenceLabel };
+export { ErrorMessage,systemeReferenceLabel };

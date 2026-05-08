@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\UsesPhaseFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\CollectePreparation;
 use App\Models\ExtractionAltimetrique;
+use App\Models\LogicielUtilise;
 use App\Models\Metadata;
 use App\Models\ModesExtraction;
+use App\Models\Echelle;
 
 class ExtractionAltimetriqueController extends Controller
 {
@@ -112,8 +115,10 @@ class ExtractionAltimetriqueController extends Controller
             'metadata' => $metadata['all'],
             'metadataForExtraction' => $metadata['available'],
             'modesExtraction' => ModesExtraction::orderBy('nom')->get(['id', 'nom']),
+            'logicielsUtilises' => LogicielUtilise::orderBy('id')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('extraction'),
             'extractions' => $this->extractionRows(),
+            'echelles'=>Echelle::all(['id', 'valeur']),
         ]);
     }
 
@@ -195,8 +200,26 @@ class ExtractionAltimetriqueController extends Controller
             ->with('success', 'Extraction altimetrique modifiée avec succès.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return ExtractionAltimetrique::destroy($id);
+        try {
+            $deleted = ExtractionAltimetrique::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('extraction.home')
+                ->with('error', 'Suppression impossible : cette extraction est utilisee ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('extraction.home')
+            ->with('success', 'Extraction supprimee avec succes.');
     }
 }

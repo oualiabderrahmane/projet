@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('controle_cartographique', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'controle_cartographique_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
             $table->foreign(['niveau_controle_id'], 'controle_cartographique_niveau_controle_id_fkey')->references(['id'])->on('niveaux_controle')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['operateur_id'], 'controle_cartographique_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
+            $table->foreign(['operateur_id'], 'controle_cartographique_operateur_id_fkey')->references(['id'])->on('users')->onUpdate('no action')->onDelete('set null');
             $table->foreign(['type_controle_id'], 'controle_cartographique_type_controle_id_fkey')->references(['id'])->on('types_controle')->onUpdate('no action')->onDelete('no action');
         });
     }

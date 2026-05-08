@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('extraction_altimetrique', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'extraction_altimetrique_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
             $table->foreign(['mode_extraction_id'], 'extraction_altimetrique_mode_extraction_id_fkey')->references(['id'])->on('modes_extraction')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['operateur_id'], 'extraction_altimetrique_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
+            $table->foreign(['operateur_id'], 'extraction_altimetrique_operateur_id_fkey')->references(['id'])->on('users')->onUpdate('no action')->onDelete('set null');
         });
     }
 

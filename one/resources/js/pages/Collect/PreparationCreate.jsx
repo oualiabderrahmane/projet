@@ -45,19 +45,20 @@ function ErrorMessage({ message }) {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 }
 
-function TextInput({ label, name, value, error, onChange, type = "text" }) {
+function TextInput({ label, name,placeholder, value, error, onChange, type = "text" }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
         id={name}
         name={name}
+        placeholder={placeholder}
         type={type}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
@@ -67,7 +68,7 @@ function TextInput({ label, name, value, error, onChange, type = "text" }) {
 function SelectInput({ label, name, value, error, onChange, children, disabled = false }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <select
@@ -76,7 +77,7 @@ function SelectInput({ label, name, value, error, onChange, children, disabled =
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
       >
         {children}
       </select>
@@ -161,16 +162,16 @@ export default function PreparationCreate({
   };
 
   return (
-    <section className="rounded bg-white p-6 shadow">
+    <section className="card">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {isEditing ? "Modifier preparation" : "Creer preparation"}
+        <h2 className="text-lg font-semibold text-slate-900">
+          {isEditing ? "Modifier la préparation" : "Créer une préparation"}
         </h2>
       </div>
 
       {metadataForForm.length === 0 && (
-        <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Aucune metadata disponible pour une nouvelle preparation.
+        <div className="alert-warning mb-4">
+          Aucune métadonnée disponible pour une nouvelle préparation.
         </div>
       )}
 
@@ -196,13 +197,14 @@ export default function PreparationCreate({
               <TextInput
                 label="Résolution"
                 name="resolution"
+                placeholder="En mètre(ex: 0.5)"
                 value={data.resolution}
                 error={errors.resolution}
                 onChange={setData}
               />
 
               <SelectInput
-                label="Type de Données OSM"
+                label="Type de données OSM"
                 name="type_osm_id"
                 value={data.type_osm_id}
                 error={errors.type_osm_id}
@@ -217,7 +219,7 @@ export default function PreparationCreate({
               </SelectInput>
 
               <TextInput
-                label="Source Toponymique"
+                label="Source toponymique"
                 name="geonames_annee_mise_a_jour"
                 type="number"
                 value={data.geonames_annee_mise_a_jour}
@@ -241,7 +243,7 @@ export default function PreparationCreate({
               type="button"
               onClick={handleCancelEdit}
               disabled={processing}
-              className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-secondary"
             >
               Annuler
             </button>
@@ -249,7 +251,7 @@ export default function PreparationCreate({
           <button
             type="submit"
             disabled={processing || metadataForForm.length === 0}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary"
           >
             {processing ? "Enregistrement..." : isEditing ? "Modifier" : "Enregistrer"}
           </button>

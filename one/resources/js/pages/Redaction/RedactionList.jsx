@@ -5,11 +5,11 @@ import { TraiteBadge } from "../../Components/TraiteField";
 function SelectFilter({ label, value, onChange, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-gray-600">{label}</label>
+      <label className="text-xs font-medium text-slate-600">{label}</label>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       >
         {children}
       </select>
@@ -30,6 +30,8 @@ function uniqueOptions(items, idKey, labelKey) {
 export default function RedactionList({
   metadata = [],
   redactions = [],
+  echelles = [],
+    formats = [],
   editingRedactionId = null,
   onEdit,
 }) {
@@ -70,15 +72,9 @@ export default function RedactionList({
     });
   }, [metadata, redactions]);
 
-  const echelles = useMemo(
-    () => uniqueOptions(rows, "echelle_id", "echelle_valeur"),
-    [rows]
-  );
 
-  const formats = useMemo(
-    () => uniqueOptions(rows, "format_id", "format_nom"),
-    [rows]
-  );
+
+
 
   const filtered = useMemo(() => {
     return rows.filter((item) => {
@@ -102,21 +98,21 @@ export default function RedactionList({
   };
 
   return (
-    <section className="rounded bg-white p-6 shadow">
+    <section className="card">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Redactions cartographiques</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            {filtered.length} / {rows.length} metadata
+          <h2 className="text-lg font-semibold text-slate-900">Rédactions cartographiques</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {filtered.length} / {rows.length} métadonnée(s)
           </p>
         </div>
         {hasFilters && (
           <button
             type="button"
             onClick={resetFilters}
-            className="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+            className="btn-secondary px-3 py-2"
           >
-            Reset
+            Réinitialiser
           </button>
         )}
       </div>
@@ -132,11 +128,11 @@ export default function RedactionList({
           }}
         />
 
-        <SelectFilter label="Echelle" value={echelleFilter} onChange={setEchelleFilter}>
+        <SelectFilter label="Échelle" value={echelleFilter} onChange={setEchelleFilter}>
           <option value="">Toutes les échelles</option>
           {echelles.map((e) => (
             <option key={e.id} value={e.id}>
-              {e.label}
+              {e.valeur}
             </option>
           ))}
         </SelectFilter>
@@ -145,59 +141,59 @@ export default function RedactionList({
           <option value="">Tous les formats</option>
           {formats.map((format) => (
             <option key={format.id} value={format.id}>
-              {format.label}
+              {format.nom}
             </option>
           ))}
         </SelectFilter>
 
-        <SelectFilter label="Etat" value={traiteFilter} onChange={setTraiteFilter}>
-          <option value="">Tous les etats</option>
-          <option value="true">Traite</option>
-          <option value="false">Non traite</option>
+        <SelectFilter label="État" value={traiteFilter} onChange={setTraiteFilter}>
+          <option value="">Tous les états</option>
+          <option value="true">Traité</option>
+          <option value="false">Non traité</option>
         </SelectFilter>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-600">Aucune redaction cartographique.</p>
+        <p className="mt-4 text-sm text-slate-600">Aucune rédaction cartographique.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="table-wrapper mt-4">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Feuille</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Echelle</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Debut</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Fin</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Logiciel</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Version</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Format</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Etat</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Feuille</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Coupure</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Échelle</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Opérateur</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Début</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Fin</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Logiciel</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Version</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Format</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">État</th>
+                <th className="px-3 py-2 text-left font-semibold text-slate-700">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {filtered.map((item) => {
                 const isEditing = String(editingRedactionId ?? "") === String(item.id);
 
                 return (
-                  <tr key={item.id} className={isEditing ? "bg-blue-50" : "hover:bg-gray-50"}>
-                    <td className="px-3 py-2 text-gray-700">{item.feuille_nom || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.coupure_nom || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.echelle_valeur || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.operateur_nom || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.date_debut || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.date_fin || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.logiciel_utilise || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.version_logiciel || "-"}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.format_nom || "-"}</td>
+                  <tr key={item.id} className={isEditing ? "bg-primary-50" : "hover:bg-slate-50"}>
+                    <td className="px-3 py-2 text-slate-700">{item.feuille_nom || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.coupure_nom || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.echelle_valeur || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.operateur_nom || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.date_debut || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.date_fin || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.logiciel_utilise || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.version_logiciel || "-"}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.format_nom || "-"}</td>
                     <td className="px-3 py-2">
                       {item.isPrepared ? (
                         <TraiteBadge value={item.traite} />
                       ) : (
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
-                          A traiter
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                          À traiter
                         </span>
                       )}
                     </td>
@@ -207,7 +203,7 @@ export default function RedactionList({
                         onClick={() =>
                           onEdit?.(item.isPrepared ? item : { ...item, id: null })
                         }
-                        className="font-semibold text-blue-600 hover:text-blue-800"
+                        className="btn-ghost px-2 py-1 text-xs"
                       >
                         {isEditing
                           ? "En modification"

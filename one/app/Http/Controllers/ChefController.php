@@ -13,18 +13,18 @@ class ChefController extends Controller
     private const STAGES = [
         [
             'key' => 'metadata',
-            'label' => 'Metadata',
+            'label' => 'Métadonnée',
             'source' => 'metadata',
         ],
         [
             'key' => 'preparation',
-            'label' => 'Preparation',
+            'label' => 'Préparation',
             'relation' => 'collecte_preparations',
             'uses_traite' => true,
         ],
         [
             'key' => 'extraction',
-            'label' => 'Extraction altimetrique',
+            'label' => 'Extraction altimétrique',
             'relation' => 'extraction_altimetriques',
             'uses_traite' => true,
         ],
@@ -80,7 +80,7 @@ class ChefController extends Controller
                 ])
                 ->push([
                     'key' => 'termine',
-                    'label' => 'Termine',
+                    'label' => 'Terminé',
                 ])
                 ->values(),
         ]);
@@ -93,14 +93,24 @@ class ChefController extends Controller
             'metadata' => fn ($query) => $query
                 ->with([
                     'echelle:id,valeur',
-                    'collecte_preparations:id,metadata_id,traite',
-                    'extraction_altimetriques:id,metadata_id,traite',
-                    'digitalisation2ds:id,metadata_id,traite',
-                    'completement_spatials:id,metadata_id,traite',
-                    'traitement_vecteurs:id,metadata_id,traite',
-                    'redaction_cartographiques:id,metadata_id,traite',
-                    'controle_cartographiques:id,metadata_id',
-                    'validation_exports:id,metadata_id,emplacement,format',
+                    'collecte_preparations.operateur:id,nom,prenom',
+                    'collecte_preparations.types_osm:id,nom',
+                    'extraction_altimetriques.operateur:id,nom,prenom',
+                    'extraction_altimetriques.modes_extraction:id,nom',
+                    'digitalisation2ds.operateur:id,nom,prenom',
+                    'digitalisation2ds.modes_realisation:id,nom',
+                    'digitalisation2ds.format:id,nom',
+                    'completement_spatials.operateur:id,nom,prenom',
+                    'completement_spatials.types_donnees_spatiales:id,nom',
+                    'traitement_vecteurs.operateur:id,nom,prenom',
+                    'traitement_vecteurs.mode_realisation:id,nom',
+                    'traitement_vecteurs.format:id,nom',
+                    'redaction_cartographiques.operateur:id,nom,prenom',
+                    'redaction_cartographiques.format:id,nom',
+                    'controle_cartographiques.operateur:id,nom,prenom',
+                    'controle_cartographiques.types_controle:id,nom',
+                    'controle_cartographiques.niveaux_controle:id,nom',
+                    'validation_exports.operateur:id,nom,prenom',
                 ])
                 ->orderBy('id'),
         ])
@@ -143,7 +153,7 @@ class ChefController extends Controller
             'progress' => $progress,
             'status' => $progress === 100 ? 'termine' : ($doneCount === 0 ? 'a_demarrer' : 'en_cours'),
             'current_stage_key' => $progress === 100 ? 'termine' : ($currentStage['key'] ?? 'metadata'),
-            'current_stage_label' => $progress === 100 ? 'Termine' : ($currentStage['label'] ?? 'Metadata'),
+            'current_stage_label' => $progress === 100 ? 'Terminé' : ($currentStage['label'] ?? 'Métadonnée'),
             'stages' => $stages,
         ];
     }
@@ -151,6 +161,8 @@ class ChefController extends Controller
     private function formatStage(array $stage, ?Metadata $metadata): array
     {
         if (($stage['source'] ?? null) === 'metadata') {
+            $date = $this->formatDate($metadata?->date_creation_metadata);
+
             return [
                 'key' => $stage['key'],
                 'label' => $stage['label'],
@@ -158,6 +170,15 @@ class ChefController extends Controller
                 'traite' => $metadata !== null,
                 'done' => $metadata !== null,
                 'status' => $metadata ? 'done' : 'todo',
+                'record_id' => $metadata?->id,
+                'date_debut' => $date,
+                'date_fin' => $date,
+                'summary' => $metadata ? 'Métadonnée créée' : 'Métadonnée non créée',
+                'details' => $this->detailRows([
+                    'Métadonnée' => $metadata?->id ? "#{$metadata->id}" : null,
+                    'Échelle' => $metadata?->echelle?->valeur,
+                    'Date création' => $date,
+                ]),
             ];
         }
 
@@ -177,6 +198,10 @@ class ChefController extends Controller
             'done' => $traite,
             'status' => $traite ? 'done' : ($exists ? 'started' : 'todo'),
             'record_id' => $record?->id,
+            'date_debut' => $this->formatDate($record?->date_debut),
+            'date_fin' => $this->formatDate($record?->date_fin),
+            'summary' => $this->stageSummary($stage['key'], $record, $exists, $traite),
+            'details' => $this->stageDetails($stage['key'], $record),
         ];
     }
 
@@ -197,6 +222,18 @@ class ChefController extends Controller
         $completed = $rows->where('status', 'termine')->count();
         $notStarted = $rows->where('status', 'a_demarrer')->count();
         $inProgress = $total - $completed - $notStarted;
+        $byStage = collect(self::STAGES)
+            ->map(fn (array $stage) => [
+                'key' => $stage['key'],
+                'label' => $stage['label'],
+                'count' => $rows->where('current_stage_key', $stage['key'])->count(),
+            ])
+            ->push([
+                'key' => 'termine',
+                'label' => 'Terminé',
+                'count' => $completed,
+            ])
+            ->values();
 
         return [
             'total' => $total,
@@ -204,14 +241,145 @@ class ChefController extends Controller
             'in_progress' => $inProgress,
             'not_started' => $notStarted,
             'average_progress' => $total > 0 ? (int) round($rows->avg('progress')) : 0,
-            'by_stage' => $rows
-                ->groupBy('current_stage_key')
-                ->map(fn (Collection $items, string $key) => [
-                    'key' => $key,
-                    'label' => $items->first()['current_stage_label'],
-                    'count' => $items->count(),
-                ])
-                ->values(),
+            'by_stage' => $byStage,
         ];
+    }
+
+    private function stageSummary(string $key, ?Model $record, bool $exists, bool $traite): string
+    {
+        if (!$exists) {
+            return 'Étape non démarrée';
+        }
+
+        if (!$traite) {
+            return 'Étape démarrée, pas encore traitée';
+        }
+
+        return match ($key) {
+            'controle' => 'Contrôle enregistré',
+            'validation' => 'Validation export enregistrée',
+            default => 'Étape traitée',
+        };
+    }
+
+    private function stageDetails(string $key, ?Model $record): array
+    {
+        if (!$record) {
+            return [];
+        }
+
+        return match ($key) {
+            'preparation' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Imagerie' => $record->imagerie ?? null,
+                'Résolution' => $record->resolution ?? null,
+                'Type OSM' => $record->types_osm?->nom,
+                'Geonames MAJ' => $record->geonames_annee_mise_a_jour ?? null,
+                'GADM' => $record->gadm_version ?? null,
+            ]),
+            'extraction' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'MNT' => $record->mnt ?? null,
+                'Résolution' => $record->resolution ?? null,
+                'Logiciel' => $record->logiciel_utilise ?? null,
+                'Version' => $record->version_logiciel ?? null,
+                'Mode extraction' => $record->modes_extraction?->nom,
+            ]),
+            'digitalisation' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Logiciel' => $record->logiciel_utilise ?? null,
+                'Version' => $record->version_logiciel ?? null,
+                'Mode réalisation' => $record->modes_realisation?->nom,
+                'Format' => $record->format?->nom,
+            ]),
+            'completement' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Types de données' => $record->types_donnees_spatiales?->pluck('nom')->all(),
+            ]),
+            'traitement' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Logiciel' => $record->logiciel_utilise ?? null,
+                'Version' => $record->version_logiciel ?? null,
+                'Mode réalisation' => $record->mode_realisation?->nom,
+                'Tolérance' => $record->tolerance_topologique ?? null,
+                'Format' => $record->format?->nom,
+            ]),
+            'redaction' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Logiciel' => $record->logiciel_utilise ?? null,
+                'Version' => $record->version_logiciel ?? null,
+                'Format' => $record->format?->nom,
+            ]),
+            'controle' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Type contrôle' => $record->types_controle?->nom,
+                'Niveau contrôle' => $record->niveaux_controle?->nom,
+                'Date contrôle' => $this->formatDate($record->date_controle ?? null),
+                'Date édition' => $this->formatDate($record->date_edition ?? null),
+            ]),
+            'validation' => $this->detailRows([
+                'Opérateur' => $record->operateur?->name,
+                'Emplacement' => $record->emplacement ?? null,
+                'Format export' => $record->format ?? null,
+            ]),
+            default => [],
+        };
+    }
+
+    private function detailRows(array $items): array
+    {
+        return collect($items)
+            ->map(function (mixed $value, string $label) {
+                $displayValue = $this->displayValue($value);
+
+                if ($displayValue === null) {
+                    return null;
+                }
+
+                return [
+                    'label' => $label,
+                    'value' => $displayValue,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function displayValue(mixed $value): ?string
+    {
+        if ($value instanceof Collection) {
+            $value = $value->all();
+        }
+
+        if (is_array($value)) {
+            $value = collect($value)
+                ->map(fn (mixed $item) => $this->displayValue($item))
+                ->filter()
+                ->join(', ');
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            $value = $value->format('Y-m-d');
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function formatDate(mixed $date): ?string
+    {
+        if ($date instanceof \DateTimeInterface) {
+            return $date->format('Y-m-d');
+        }
+
+        $date = trim((string) ($date ?? ''));
+
+        return $date === '' ? null : $date;
     }
 }

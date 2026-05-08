@@ -15,6 +15,13 @@ use App\Models\TypesReleve;
 
 class MetadataController extends Controller
 {
+    private const COORDINATE_FIELDS = [
+        'latitude_nord',
+        'longitude_ouest',
+        'longitude_est',
+        'latitude_sud',
+    ];
+
     private function nextId(string $modelClass): int
     {
         $lastId = $modelClass::query()
@@ -32,6 +39,24 @@ class MetadataController extends Controller
             'typesReleve' => TypesReleve::orderBy('nom')->get(['id', 'nom']),
             'echelles' => Echelle::orderBy('id')->get(['id', 'valeur']),
         ];
+    }
+
+    private function coordinateValidationRules(): array
+    {
+        return collect(self::COORDINATE_FIELDS)
+            ->mapWithKeys(fn (string $field) => [$field => 'nullable|string|max:50'])
+            ->all();
+    }
+
+    private function coupureCoordinateValues(array $validated): array
+    {
+        return collect(self::COORDINATE_FIELDS)
+            ->mapWithKeys(fn (string $field) => [
+                $field => isset($validated[$field]) && trim((string) $validated[$field]) !== ''
+                    ? trim((string) $validated[$field])
+                    : null,
+            ])
+            ->all();
     }
 private function metadataRows(Request $request)
 {
@@ -88,6 +113,10 @@ private function metadataRows(Request $request)
             'coupure_id' => $metadata->coupure?->id,
             'coupure_nom' => $metadata->coupure?->nom,
             'coupure_label' => $metadata->coupure?->label,
+            'latitude_nord' => $metadata->coupure?->latitude_nord,
+            'longitude_ouest' => $metadata->coupure?->longitude_ouest,
+            'longitude_est' => $metadata->coupure?->longitude_est,
+            'latitude_sud' => $metadata->coupure?->latitude_sud,
             'date_creation_metadata' => $metadata->date_creation_metadata?->format('Y-m-d'),
             'pays_id' => $metadata->pay?->id,
             'pays_nom' => $metadata->pay?->nom,
@@ -168,6 +197,7 @@ public function byCoupure($coupure_id)
         'feuille_nom' => 'required|string|max:100',
         'coupure_nom' => 'required|string|max:100',
         'coupure_label' => 'required|string|max:100',
+        ...$this->coordinateValidationRules(),
         'pays_id' => 'nullable|exists:pays,id',
         'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
         'type_releve_id' => 'nullable|exists:types_releve,id',
@@ -179,6 +209,7 @@ public function byCoupure($coupure_id)
         $feuilleNom = trim($validated['feuille_nom']);
         $coupureNom = trim($validated['coupure_nom']);
         $coupureLabel = trim($validated['coupure_label']);
+        $coupureCoordinates = $this->coupureCoordinateValues($validated);
 
         // 1. Check or create Feuille
         $feuille = Feuille::where('nom', $feuilleNom)->first();
@@ -200,10 +231,14 @@ public function byCoupure($coupure_id)
                 'id' => $this->nextId(Coupure::class),
                 'nom' => $coupureNom,
                 'label' => $coupureLabel,
-                'feuille_id' => $feuille->id
+                'feuille_id' => $feuille->id,
+                ...$coupureCoordinates,
             ]);
-        } elseif ($coupure->label !== $coupureLabel) {
-            $coupure->update(['label' => $coupureLabel]);
+        } else {
+            $coupure->update([
+                'label' => $coupureLabel,
+                ...$coupureCoordinates,
+            ]);
         }
 
         // 3. Create Metadata (no need to check usually)
@@ -233,6 +268,7 @@ public function update(Request $request, Metadata $metadata)
         'feuille_nom' => 'required|string|max:100',
         'coupure_nom' => 'required|string|max:100',
         'coupure_label' => 'required|string|max:100',
+        ...$this->coordinateValidationRules(),
         'pays_id' => 'nullable|exists:pays,id',
         'systeme_reference_id' => 'nullable|exists:systemes_reference,id',
         'type_releve_id' => 'nullable|exists:types_releve,id',
@@ -244,6 +280,7 @@ public function update(Request $request, Metadata $metadata)
         $feuilleNom = trim($validated['feuille_nom']);
         $coupureNom = trim($validated['coupure_nom']);
         $coupureLabel = trim($validated['coupure_label']);
+        $coupureCoordinates = $this->coupureCoordinateValues($validated);
         $feuille = Feuille::where('nom', $feuilleNom)->first();
 
         if (!$feuille) {
@@ -262,10 +299,14 @@ public function update(Request $request, Metadata $metadata)
                 'id' => $this->nextId(Coupure::class),
                 'nom' => $coupureNom,
                 'label' => $coupureLabel,
-                'feuille_id' => $feuille->id
+                'feuille_id' => $feuille->id,
+                ...$coupureCoordinates,
             ]);
-        } elseif ($coupure->label !== $coupureLabel) {
-            $coupure->update(['label' => $coupureLabel]);
+        } else {
+            $coupure->update([
+                'label' => $coupureLabel,
+                ...$coupureCoordinates,
+            ]);
         }
 
         $metadata->update([
@@ -281,5 +322,28 @@ public function update(Request $request, Metadata $metadata)
     return redirect()
         ->route('metadata.home')
         ->with('success', 'Metadata modifié avec succès.');
+}
+
+public function destroy(Request $request, Metadata $metadata)
+{
+    try {
+        $metadata->delete();
+    } catch (\Throwable $exception) {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Suppression impossible'], 409);
+        }
+
+        return redirect()
+            ->route('metadata.home')
+            ->with('error', 'Suppression impossible : cette metadata est utilisee ailleurs.');
+    }
+
+    if ($request->expectsJson()) {
+        return response()->json(['message' => 'Deleted']);
+    }
+
+    return redirect()
+        ->route('metadata.home')
+        ->with('success', 'Metadata supprimee avec succes.');
 }
 }

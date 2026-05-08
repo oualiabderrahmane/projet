@@ -1,22 +1,22 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use App\Models\User;
 
 class AuthController extends Controller
 {
     private function redirectPathFor(User $user): string
     {
-        $roles = $user->roles()->pluck('name')->all();
+        $role = User::normalizeRoleName($user->role?->name);
 
         $routesByRole = [
             'admin' => 'admin.dashboard',
             'chef' => 'chef.home',
-            'collect' => 'collect.home',
+            'collect' => 'metadata.home',
             'extraction' => 'extraction.home',
             'digitalisation' => 'digitalisation.home',
             'completment_spatial' => 'completment-spatial.home',
@@ -24,49 +24,26 @@ class AuthController extends Controller
             'redaction' => 'redaction.home',
         ];
 
-        foreach ($routesByRole as $role => $routeName) {
-            if (in_array($role, $roles, true)) {
-                return route($routeName);
-            }
-        }
-
-        return route('login');
+        return isset($routesByRole[$role])
+            ? route($routesByRole[$role])
+            : route('login');
     }
 
-    public function redirectAuthenticated(Request $request)
+    public function redirectAuthenticated()
     {
-        if (!$request->user()) {
+        if (!Auth::user()) {
             return redirect()->route('login');
         }
 
-        return redirect($this->redirectPathFor($request->user()));
+        return redirect($this->redirectPathFor(Auth::user()));
     }
 
-    // login par mail et mot de passe
     public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
-
-        if ($request->expectsJson()) {
-            $user = User::where('email', $credentials['email'])->first();
-
-            if (!$user || !Hash::check($credentials['password'], $user->password)) {
-                return response()->json([
-                    'message' => 'Invalid credentials'
-                ], 401);
-            }
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'user' => $user->load('roles:id,name'),
-                'token' => $token,
-                'redirect' => $this->redirectPathFor($user),
-            ]);
-        }
 
         if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
@@ -76,31 +53,15 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($this->redirectPathFor($request->user()));
+        return redirect($this->redirectPathFor($request->user()));
     }
 
-    // LOGOUT
     public function logout(Request $request)
     {
-        if ($request->expectsJson()) {
-            $request->user()?->currentAccessToken()?->delete();
-
-            return response()->json([
-                'message' => 'Logged out successfully'
-            ]);
-        }
-
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    // GET LOGGED USER
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
     }
 }

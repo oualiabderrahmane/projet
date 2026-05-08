@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('redaction_cartographique', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'redaction_cartographique_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['operateur_id'], 'redaction_cartographique_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
+            $table->foreign(['operateur_id'], 'redaction_cartographique_operateur_id_fkey')->references(['id'])->on('users')->onUpdate('no action')->onDelete('set null');
         });
     }
 

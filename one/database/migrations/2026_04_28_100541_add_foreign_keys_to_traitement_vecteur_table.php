@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('traitement_vecteur', function (Blueprint $table) {
             $table->foreign(['metadata_id'], 'traitement_vecteur_metadata_id_fkey')->references(['id'])->on('metadata')->onUpdate('no action')->onDelete('no action');
             $table->foreign(['mode_realisation_id'], 'traitement_vecteur_mode_realisation_id_fkey')->references(['id'])->on('mode_realisation')->onUpdate('no action')->onDelete('no action');
-            $table->foreign(['operateur_id'], 'traitement_vecteur_operateur_id_fkey')->references(['id'])->on('operateurs')->onUpdate('no action')->onDelete('set null');
+            $table->foreign(['operateur_id'], 'traitement_vecteur_operateur_id_fkey')->references(['id'])->on('users')->onUpdate('no action')->onDelete('set null');
         });
     }
 

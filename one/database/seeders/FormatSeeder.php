@@ -14,6 +14,7 @@ class FormatSeeder extends Seeder
             'Dgm' => 'DGN',
             'Shp' => 'SHP',
             'GeoTif' => 'Geotif',
+            'autre' => 'AUTRE',
         ];
 
         foreach ($renames as $oldName => $newName) {
@@ -26,10 +27,10 @@ class FormatSeeder extends Seeder
             'SHP',
             'GDB',
             'MDB',
+            'Autre',
             'Geotif',
             'pdf',
             'ecw',
-            'autre',
         ];
 
         foreach ($formats as $format) {

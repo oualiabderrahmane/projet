@@ -1,5 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import TimedFlash from "../../Components/TimedFlash";
 import ExtractionCreate from "./ExtractionCreate";
 import ExtractionList from "./ExtractionList";
 
@@ -8,7 +9,9 @@ export default function HomeExtraction({
   metadata = [],
   metadataForExtraction = [],
   modesExtraction = [],
+  logicielsUtilises = [],
   operateurs = [],
+  echelles=[],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -26,20 +29,17 @@ export default function HomeExtraction({
       <main className="page-shell">
         <div className="page-container">
           <div className="mb-6">
-            <h1 className="page-title">Extraction altimetrique</h1>
-            <p className="page-subtitle">Gestion de l'extraction et de ses parametres.</p>
+            <h1 className="page-title">Extraction altimétrique</h1>
+            <p className="page-subtitle">Gestion de l'extraction et de ses paramètres.</p>
           </div>
 
-          {flashSuccess && (
-            <div className="alert-success">
-              {flashSuccess}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           <div className="space-y-6">
             <ExtractionCreate
               metadata={metadataForExtraction}
               modesExtraction={modesExtraction}
+              logicielsUtilises={logicielsUtilises}
               operateurs={operateurs}
               extractionRecord={selectedExtraction}
               onCancelEdit={() => setSelectedExtraction(null)}
@@ -48,6 +48,8 @@ export default function HomeExtraction({
             <ExtractionList
               metadata={metadata}
               extractions={extractions}
+               modesExtraction={modesExtraction}
+               echelles={echelles}
               editingExtractionId={selectedExtraction?.id}
               onEdit={handleEdit}
             />

@@ -56,6 +56,10 @@ class ValidationExportController extends Controller
     {
         return Metadata::with([
             'coupure.feuille',
+            'echelle',
+            'controle_cartographiques.types_controle',
+            'controle_cartographiques.niveaux_controle',
+            'controle_cartographiques.operateur',
             'validation_exports',
             'validation_exports.operateur',
             'coupure_fiches.validation_export.operateur',
@@ -67,16 +71,41 @@ class ValidationExportController extends Controller
             ->map(function (Metadata $metadata) {
                 $fiche = $metadata->coupure_fiches->first();
                 $validationExport = $metadata->validation_exports->first() ?: $fiche?->validation_export;
+                $controles = $metadata->controle_cartographiques
+                    ->sortBy('id')
+                    ->values()
+                    ->map(fn (ControleCartographique $controle) => [
+                        'id' => $controle->id,
+                        'type_controle_id' => $controle->type_controle_id,
+                        'type_controle_nom' => $controle->types_controle?->nom,
+                        'niveau_controle_id' => $controle->niveau_controle_id,
+                        'niveau_controle_nom' => $controle->niveaux_controle?->nom,
+                        'operateur_id' => $controle->operateur_id,
+                        'operateur_nom' => $controle->operateur?->name,
+                        'date_debut' => $controle->date_debut?->format('Y-m-d'),
+                        'date_fin' => $controle->date_fin?->format('Y-m-d'),
+                        'date_controle' => $controle->date_controle?->format('Y-m-d'),
+                        'date_edition' => $controle->date_edition?->format('Y-m-d'),
+                    ]);
 
                 return [
                     'metadata_id' => $metadata->id,
                     'fiche_id' => $fiche?->id,
+                    'validation_id' => $validationExport?->id,
+                    'feuille_id' => $metadata->coupure?->feuille?->id,
                     'feuille_nom' => $metadata->coupure?->feuille?->nom,
+                    'coupure_id' => $metadata->coupure?->id,
                     'coupure_nom' => $metadata->coupure?->nom,
                     'coupure_label' => $metadata->coupure?->label,
+                    'echelle_id' => $metadata->echelle?->id,
+                    'echelle_valeur' => $metadata->echelle?->valeur,
                     'operateur_id' => $validationExport?->operateur_id,
-                    'operateur_nom' => $validationExport?->operateur?->nom,
+                    'operateur_nom' => $validationExport?->operateur?->name,
                     'emplacement' => $validationExport?->emplacement,
+                    'format' => $validationExport?->format,
+                    'validated' => (bool) $validationExport,
+                    'controle_count' => $controles->count(),
+                    'controles' => $controles,
                 ];
             })
             ->values();
@@ -117,7 +146,7 @@ class ValidationExportController extends Controller
                 (string) $metadata->coupure_id !== (string) $validated['coupure_id'] ||
                 (string) $metadata->coupure?->feuille?->id !== (string) $validated['feuille_id']
             ) {
-                abort(422, 'La feuille et la coupure selectionnees ne correspondent pas.');
+                abort(422, 'La feuille et la coupure sélectionnées ne correspondent pas.');
             }
 
             $validationExport = ValidationExport::where('metadata_id', $metadata->id)->first();
@@ -165,13 +194,13 @@ class ValidationExportController extends Controller
     {
         $fiche = $this->saveFiche($this->validateExportRequest($request), 'xml');
 
-        return redirect()->route('coupure-fiche.xml', $fiche);
+        return app(FinalleController::class)->exportXml($fiche->id);
     }
 
     public function downloadPdf(Request $request)
     {
         $fiche = $this->saveFiche($this->validateExportRequest($request), 'pdf');
 
-        return redirect()->route('coupure-fiche.pdf', $fiche);
+        return app(FinalleController::class)->exportPdf($fiche->id);
     }
 }

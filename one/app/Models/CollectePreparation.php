@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool $traite
  * 
  * @property Metadata $metadata
- * @property Operateur|null $operateur
+ * @property User|null $operateur
  * @property TypesOsm|null $types_osm
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -76,7 +76,7 @@ class CollectePreparation extends Model
 
 	public function operateur()
 	{
-		return $this->belongsTo(Operateur::class);
+		return $this->belongsTo(User::class, 'operateur_id');
 	}
 
 	public function coupure_fiches()

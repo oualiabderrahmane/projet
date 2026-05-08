@@ -1,5 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import TimedFlash from "../../Components/TimedFlash";
 import PreparationCreate from "./PreparationCreate";
 import PreaparationList from "./PreaparationList";
 
@@ -21,22 +22,18 @@ export default function HomePreparation({
 
   return (
     <>
-      <Head title="Preparation" />
+      <Head title="Préparation" />
 
       <main className="page-shell">
         <div className="page-container">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="page-title">Collecte preparation</h1>
-              <p className="page-subtitle">Formulaire en haut, liste filtree en bas.</p>
+              <h1 className="page-title">Collecte et préparation</h1>
+              
             </div>
           </div>
 
-          {flashSuccess && (
-            <div className="alert-success">
-              {flashSuccess}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           <div className="space-y-6">
             <PreparationCreate

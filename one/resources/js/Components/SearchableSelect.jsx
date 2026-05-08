@@ -5,7 +5,7 @@ function ErrorMessage({ message }) {
     return null;
   }
 
-  return <p className="mt-1 text-sm text-red-600">{message}</p>;
+  return <p className="mt-1 text-sm font-medium text-red-600">{message}</p>;
 }
 
 export default function SearchableSelect({
@@ -15,7 +15,7 @@ export default function SearchableSelect({
   onSearch,
   filterOption,
   options = [],
-  placeholder = "Selectionner",
+  placeholder = "Sélectionner",
   searchPlaceholder = "Rechercher",
   disabled = false,
   error = null,
@@ -91,8 +91,8 @@ export default function SearchableSelect({
   };
 
   return (
-    <div className="relative flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+    <div className="relative flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</label>
       <input
         type="search"
         value={inputValue}
@@ -101,22 +101,22 @@ export default function SearchableSelect({
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
         onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
-        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded border border-gray-200 bg-white py-1 text-sm shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
           <button
             type="button"
             onMouseDown={(event) => {
               event.preventDefault();
               handleClear();
             }}
-            className="block w-full px-3 py-2 text-left text-gray-500 hover:bg-gray-50"
+            className="block w-full px-3 py-2 text-left text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             {placeholder}
           </button>
           {filteredOptions.length === 0 ? (
-            <div className="px-3 py-2 text-gray-500">Aucun resultat trouve</div>
+            <div className="px-3 py-2 text-slate-500">Aucun résultat trouvé</div>
           ) : (
             filteredOptions.map((option) => (
               <button
@@ -126,7 +126,7 @@ export default function SearchableSelect({
                   event.preventDefault();
                   handleOptionSelect(option);
                 }}
-                className="block w-full px-3 py-2 text-left text-gray-900 hover:bg-blue-50"
+                className="block w-full px-3 py-2 text-left text-slate-900 hover:bg-primary-50 dark:text-slate-100 dark:hover:bg-primary-950/40"
               >
                 {option.label}
               </button>

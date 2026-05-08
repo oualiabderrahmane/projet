@@ -44,7 +44,7 @@ function ErrorMessage({ message }) {
 function TextInput({ label, name, value, error, onChange }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
@@ -53,7 +53,7 @@ function TextInput({ label, name, value, error, onChange }) {
         type="text"
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
@@ -63,7 +63,7 @@ function TextInput({ label, name, value, error, onChange }) {
 function SelectInput({ label, name, value, error, onChange, children }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <select
@@ -71,7 +71,7 @@ function SelectInput({ label, name, value, error, onChange, children }) {
         name={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       >
         {children}
       </select>
@@ -84,6 +84,7 @@ export default function Digitalisation({
   metadata = [],
   modesRealisation = [],
   formats = [],
+  logicielsUtilises = [],
   operateurs = [],
   digitalisationRecord = null,
   onCancelEdit,
@@ -120,6 +121,23 @@ export default function Digitalisation({
     ];
   }, [digitalisationRecord, isEditing, metadata]);
 
+  const logicielOptions = useMemo(() => {
+    if (
+      !data.logiciel_utilise ||
+      logicielsUtilises.some((logiciel) => logiciel.nom === data.logiciel_utilise)
+    ) {
+      return logicielsUtilises;
+    }
+
+    return [
+      ...logicielsUtilises,
+      {
+        id: `current-${data.logiciel_utilise}`,
+        nom: data.logiciel_utilise,
+      },
+    ];
+  }, [data.logiciel_utilise, logicielsUtilises]);
+
   useEffect(() => {
     setData(digitalisationToForm(digitalisationRecord));
     clearErrors();
@@ -151,16 +169,12 @@ export default function Digitalisation({
   };
 
   return (
-    <section className="rounded bg-white p-6 shadow">
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {isEditing ? "Modifier digitalisation" : "Creer digitalisation"}
-        </h2>
-      </div>
+    <section className="card">
+      
 
       {metadataForForm.length === 0 && (
-        <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Aucune metadata disponible pour une nouvelle digitalisation.
+        <div className="alert-warning mb-4">
+          Aucune métadonnée disponible pour une nouvelle digitalisation.
         </div>
       )}
 
@@ -175,16 +189,23 @@ export default function Digitalisation({
             operateurs={operateurs}
           />
 
-          <TextInput
+          <SelectInput
             label="Logiciel utilisé"
             name="logiciel_utilise"
             value={data.logiciel_utilise}
             error={errors.logiciel_utilise}
             onChange={setData}
-          />
+          >
+            <option value="">Aucun logiciel</option>
+            {logicielOptions.map((logiciel) => (
+              <option key={logiciel.id} value={logiciel.nom}>
+                {logiciel.nom}
+              </option>
+            ))}
+          </SelectInput>
 
           <TextInput
-            label="Version logiciel"
+            label="Version du logiciel"
             name="version_logiciel"
             value={data.version_logiciel}
             error={errors.version_logiciel}
@@ -229,7 +250,7 @@ export default function Digitalisation({
               type="button"
               onClick={handleCancelEdit}
               disabled={processing}
-              className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-secondary"
             >
               Annuler
             </button>
@@ -237,7 +258,7 @@ export default function Digitalisation({
           <button
             type="submit"
             disabled={processing || metadataForForm.length === 0}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary"
           >
             {processing ? "Enregistrement..." : isEditing ? "Modifier" : "Enregistrer"}
           </button>

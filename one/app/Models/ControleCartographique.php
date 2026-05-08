@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property Metadata $metadata
  * @property TypesControle|null $types_controle
  * @property NiveauxControle|null $niveaux_controle
- * @property Operateur|null $operateur
+ * @property User|null $operateur
  * @property Collection|ControleNiveaux[] $controle_niveauxes
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
@@ -78,7 +78,7 @@ class ControleCartographique extends Model
 
 	public function operateur()
 	{
-		return $this->belongsTo(Operateur::class);
+		return $this->belongsTo(User::class, 'operateur_id');
 	}
 
 	public function controle_niveauxes()

@@ -1,7 +1,8 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
+import TimedFlash from "../../Components/TimedFlash";
 import RedactionList from "./RedactionList";
 
 function ErrorMessage({ message }) {
@@ -15,7 +16,7 @@ function ErrorMessage({ message }) {
 function TextInput({ label, name, value, error, onChange }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
@@ -24,7 +25,7 @@ function TextInput({ label, name, value, error, onChange }) {
         type="text"
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
@@ -34,7 +35,7 @@ function TextInput({ label, name, value, error, onChange }) {
 function SelectInput({ label, name, value, error, onChange, children }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <select
@@ -42,7 +43,7 @@ function SelectInput({ label, name, value, error, onChange, children }) {
         name={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       >
         {children}
       </select>
@@ -55,15 +56,17 @@ export default function Redaction({
   metadata = [],
   metadataForRedaction = [],
   formats = [],
+  logicielsUtilises = [],
   operateurs = [],
   redactions = [],
+  echelles = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
   const [editingRedaction, setEditingRedaction] = useState(null);
   const isEditing = editingRedaction !== null;
 
-  const { data, setData, post, put, processing, errors, reset, recentlySuccessful } = useForm({
+  const { data, setData, post, put, processing, errors, reset } = useForm({
     feuille_id: "",
     coupure_id: "",
     metadata_id: "",
@@ -111,6 +114,23 @@ export default function Redaction({
     }
   };
 
+  const logicielOptions = useMemo(() => {
+    if (
+      !data.logiciel_utilise ||
+      logicielsUtilises.some((logiciel) => logiciel.nom === data.logiciel_utilise)
+    ) {
+      return logicielsUtilises;
+    }
+
+    return [
+      ...logicielsUtilises,
+      {
+        id: `current-${data.logiciel_utilise}`,
+        nom: data.logiciel_utilise,
+      },
+    ];
+  }, [data.logiciel_utilise, logicielsUtilises]);
+
   return (
     <>
       <Head title="Rédaction cartographique" />
@@ -119,22 +139,16 @@ export default function Redaction({
         <div className="page-container max-w-5xl">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Rédaction cartographique</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Saisie des informations de redaction
-              </p>
+              <h1 className="text-2xl font-bold text-slate-900">Rédaction cartographique</h1>
+
             </div>
           </div>
 
-          {(flashSuccess || recentlySuccessful) && (
-            <div className="mb-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-              {flashSuccess || "Rédaction cartographique créée avec succès."}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           {!isEditing && metadataForRedaction.length === 0 && (
-            <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Aucune metadata disponible pour une nouvelle redaction.
+            <div className="alert-warning mb-4">
+              Aucune métadonnée disponible pour une nouvelle rédaction.
             </div>
           )}
 
@@ -156,16 +170,23 @@ export default function Redaction({
                 operateurs={operateurs}
               />
 
-              <TextInput
-                label="Logiciel utilise"
+              <SelectInput
+                label="Logiciel utilisé"
                 name="logiciel_utilise"
                 value={data.logiciel_utilise}
                 error={errors.logiciel_utilise}
                 onChange={setData}
-              />
+              >
+                <option value="">Aucun logiciel</option>
+                {logicielOptions.map((logiciel) => (
+                  <option key={logiciel.id} value={logiciel.nom}>
+                    {logiciel.nom}
+                  </option>
+                ))}
+              </SelectInput>
 
               <TextInput
-                label="Version logiciel"
+                label="Version du logiciel"
                 name="version_logiciel"
                 value={data.version_logiciel}
                 error={errors.version_logiciel}
@@ -194,7 +215,7 @@ export default function Redaction({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  className="btn-secondary"
                 >
                   Annuler
                 </button>
@@ -202,9 +223,9 @@ export default function Redaction({
               <button
                 type="submit"
                 disabled={processing || (!isEditing && metadataForRedaction.length === 0)}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary"
               >
-                {processing ? "Enregistrement..." : isEditing ? "Mettre a jour" : "Enregistrer"}
+                {processing ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Enregistrer"}
               </button>
             </div>
           </form>
@@ -212,6 +233,8 @@ export default function Redaction({
           <RedactionList
             metadata={metadata}
             redactions={redactions}
+            echelles={echelles}
+            formats ={formats}
             editingRedactionId={editingRedaction?.id ?? null}
             onEdit={handleEdit}
           />

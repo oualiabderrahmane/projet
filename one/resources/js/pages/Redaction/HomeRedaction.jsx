@@ -8,15 +8,14 @@ export default function HomeRedaction() {
     <main className="page-shell">
       <div className="page-container max-w-5xl">
         <div className="card">
-          <h1 className="page-title">Espace redaction</h1>
-          <p className="page-subtitle">Connecté : {user?.name || "Redaction"}</p>
+          
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
             <Link
               href="/redaction-cartographique"
               className="module-link"
             >
-              Rédaction cartographique
+              Epreuve d`essai
             </Link>
             <Link
               href="/controle-cartographique/create"

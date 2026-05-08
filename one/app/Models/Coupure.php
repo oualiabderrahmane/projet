@@ -15,6 +15,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property int $feuille_id
  * @property string $nom
+ * @property string|null $latitude_nord
+ * @property string|null $longitude_ouest
+ * @property string|null $longitude_est
+ * @property string|null $latitude_sud
  * 
  * @property Feuille $feuille
  * @property Collection|Metadata[] $metadata
@@ -37,7 +41,11 @@ class Coupure extends Model
 		'id',
 		'feuille_id',
 		'nom',
-		'label'
+		'label',
+		'latitude_nord',
+		'longitude_ouest',
+		'longitude_est',
+		'latitude_sud',
 	];
 
 	public function feuille()

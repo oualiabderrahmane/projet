@@ -12,6 +12,7 @@ use App\Models\CompletementSpatial;
 use App\Models\Digitalisation2d;
 use App\Models\Metadata;
 use App\Models\TypesDonneesSpatiale;
+use App\Models\Echelle;
 
 class CompletementSpatialController extends Controller
 {
@@ -95,6 +96,7 @@ class CompletementSpatialController extends Controller
             'typesDonnees' => TypesDonneesSpatiale::orderBy('nom')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('completment_spatial'),
             'completements' => $completements,
+            'echelles'=>Echelle::all(['id', 'valeur']),
         ];
     }
 
@@ -222,8 +224,26 @@ class CompletementSpatialController extends Controller
             ->with('success', 'Complètement spatial mis à jour avec succès.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return CompletementSpatial::destroy($id);
+        try {
+            $deleted = CompletementSpatial::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('completment-spatial.home')
+                ->with('error', 'Suppression impossible : ce completement est utilise ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('completment-spatial.home')
+            ->with('success', 'Completement spatial supprime avec succes.');
     }
 }

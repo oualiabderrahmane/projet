@@ -3,29 +3,24 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\ModeRealisation;
+use Illuminate\Support\Facades\DB;
 
 class ModeRealisationSeeder extends Seeder
 {
     public function run(): void
     {
-        $modes = [
-            'Intégration des données',
-            'Traitement des données',
-            'Intégration et traitement',
+        $singularModes = [
+            1 => 'Integration des donnees',
+            2 => 'Traitement des donnees',
+            3 => 'Integration et traitement',
         ];
 
-        $nextId = ((int) ModeRealisation::max('id')) + 1;
-
-        foreach ($modes as $mode) {
-            $existing = ModeRealisation::where('nom', $mode)->first();
-
-            if (!$existing) {
-                $record = new ModeRealisation();
-                $record->id = $nextId++;
-                $record->nom = $mode;
-                $record->save();
-            }
+        foreach ($singularModes as $id => $nom) {
+            DB::table('mode_realisation')->updateOrInsert(
+                ['id' => $id],
+                ['nom' => $nom]
+            );
         }
+
     }
 }

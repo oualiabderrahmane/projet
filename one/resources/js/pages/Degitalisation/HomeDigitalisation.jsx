@@ -1,5 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import { useState } from "react";
+import TimedFlash from "../../Components/TimedFlash";
 import DegitalisationList from "./DegitalisationList";
 import Digitalisation from "./Digitalisation";
 
@@ -9,7 +10,9 @@ export default function HomeDigitalisation({
   metadataForDigitalisation = [],
   modesRealisation = [],
   formats = [],
+  logicielsUtilises = [],
   operateurs = [],
+   Echelle = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -27,32 +30,32 @@ export default function HomeDigitalisation({
       <main className="page-shell">
         <div className="page-container">
           <div className="mb-6">
-            <h1 className="page-title">Digitalisation</h1>
-            <p className="page-subtitle">Pilotage des traitements de digitalisation.</p>
+            <h1 className="page-title">Digitalisation 2D</h1>
+
           </div>
 
-          {flashSuccess && (
-            <div className="alert-success">
-              {flashSuccess}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           <div className="space-y-6">
             <Digitalisation
               metadata={metadataForDigitalisation}
               modesRealisation={modesRealisation}
               formats={formats}
+              logicielsUtilises={logicielsUtilises}
               operateurs={operateurs}
               digitalisationRecord={selectedDigitalisation}
               onCancelEdit={() => setSelectedDigitalisation(null)}
               onSaved={() => setSelectedDigitalisation(null)}
             />
             <DegitalisationList
-              metadata={metadata}
-              digitalisations={digitalisations}
-              editingDigitalisationId={selectedDigitalisation?.id}
-              onEdit={handleEdit}
-            />
+  metadata={metadata}
+  digitalisations={digitalisations}
+  modesRealisation={modesRealisation}
+  formats={formats}
+  echelles={Echelle}
+  editingDigitalisationId={selectedDigitalisation?.id}
+  onEdit={handleEdit}
+/>
           </div>
         </div>
       </main>

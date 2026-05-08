@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $format
  * 
  * @property Metadata $metadata
- * @property Operateur|null $operateur
+ * @property User|null $operateur
  * @property Collection|CoupureFiche[] $coupure_fiches
  *
  * @package App\Models
@@ -52,7 +52,7 @@ class ValidationExport extends Model
 
 	public function operateur()
 	{
-		return $this->belongsTo(Operateur::class);
+		return $this->belongsTo(User::class, 'operateur_id');
 	}
 
 	public function coupure_fiches()

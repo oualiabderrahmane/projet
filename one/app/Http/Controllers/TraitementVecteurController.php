@@ -10,10 +10,11 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\CompletementSpatial;
 use App\Models\Format;
+use App\Models\LogicielUtilise;
 use App\Models\Metadata;
 use App\Models\ModeRealisation;
 use App\Models\TraitementVecteur;
-
+use App\Models\Echelle;
 class TraitementVecteurController extends Controller
 {
     use UsesPhaseFields;
@@ -29,11 +30,7 @@ class TraitementVecteurController extends Controller
         'Intégration et traitement',
     ];
 
-    private const TRAITEMENT_MODE_RENAMES = [
-        'Integration' => 'Intégration des données',
-        'Traitement' => 'Traitement des données',
-        'Les deux' => 'Intégration et traitement',
-    ];
+
 
     private function pageData(): array
     {
@@ -44,8 +41,10 @@ class TraitementVecteurController extends Controller
             'metadataForTraitement' => $metadata['available'],
             'modesRealisation' => $this->traitementModeRows(),
             'formats' => Format::whereIn('nom', self::TRAITEMENT_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'logicielsUtilises' => LogicielUtilise::orderBy('id')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('traitment_vecteur'),
             'traitements' => $this->traitementRows(),
+            'echelles'=>Echelle::all(['id', 'valeur']),
         ];
     }
 
@@ -62,7 +61,7 @@ class TraitementVecteurController extends Controller
     private function ensureTraitementModes(): void
     {
         DB::transaction(function () {
-            foreach (self::TRAITEMENT_MODE_RENAMES as $oldName => $newName) {
+            foreach (self::TRAITEMENT_MODES as $oldName => $newName) {
                 ModeRealisation::where('nom', $oldName)->update(['nom' => $newName]);
             }
 
@@ -274,8 +273,26 @@ class TraitementVecteurController extends Controller
             ->with('success', 'Traitement vecteur modifié avec succès.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return TraitementVecteur::destroy($id);
+        try {
+            $deleted = TraitementVecteur::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('traitement-vecteur.home')
+                ->with('error', 'Suppression impossible : ce traitement est utilise ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('traitement-vecteur.home')
+            ->with('success', 'Traitement supprime avec succes.');
     }
 }

@@ -11,10 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class Role
- * 
+ *
  * @property int $id
  * @property string $name
- * 
+ *
  * @property Collection|User[] $users
  *
  * @package App\Models
@@ -28,8 +28,5 @@ class Role extends Model
 		'name'
 	];
 
-	public function users()
-	{
-		return $this->belongsToMany(User::class, 'user_roles');
-	}
+	
 }

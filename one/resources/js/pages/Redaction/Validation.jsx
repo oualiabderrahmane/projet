@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import FeuilleCoupureFilter from "../../Components/FeuilleCoupureFilter";
 import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
 
@@ -14,7 +15,7 @@ function ErrorMessage({ message }) {
 function TextInput({ label, name, value, error, onChange }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
@@ -23,11 +24,42 @@ function TextInput({ label, name, value, error, onChange }) {
         type="text"
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
   );
+}
+
+function SelectFilter({ label, value, onChange, children }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-medium text-slate-600">{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function uniqueOptions(items, idKey, labelKey) {
+  return [
+    ...new Map(
+      items
+        .filter((item) => item[idKey] !== null && item[idKey] !== undefined && item[labelKey])
+        .map((item) => [
+          String(item[idKey]),
+          {
+            id: String(item[idKey]),
+            label: item[labelKey],
+          },
+        ])
+    ).values(),
+  ].sort((a, b) => String(a.label).localeCompare(String(b.label)));
 }
 
 export default function Validation({ metadata = [], fiches = [], operateurs = [] }) {
@@ -43,16 +75,56 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
     coupure_id: "",
     metadata_id: "",
     operateur_id: "",
-    emplacement: "",
   });
+  const [feuilleFilter, setFeuilleFilter] = useState("");
+  const [coupureFilter, setCoupureFilter] = useState("");
+  const [echelleFilter, setEchelleFilter] = useState("");
+  const [formatFilter, setFormatFilter] = useState("");
+  const [operateurFilter, setOperateurFilter] = useState("");
 
   const selectedFiche = useMemo(
     () => fiches.find((fiche) => String(fiche.metadata_id) === String(data.metadata_id)),
     [data.metadata_id, fiches]
   );
 
+  const echelles = useMemo(
+    () => uniqueOptions(fiches, "echelle_id", "echelle_valeur"),
+    [fiches]
+  );
+
+  const formats = useMemo(
+    () => [...new Set(fiches.map((fiche) => fiche.format).filter(Boolean))].sort(),
+    [fiches]
+  );
+
+  const validationOperateurs = useMemo(
+    () => uniqueOptions(fiches, "operateur_id", "operateur_nom"),
+    [fiches]
+  );
+
+  const filteredFiches = useMemo(() => {
+    return fiches.filter((fiche) => {
+      if (feuilleFilter && String(fiche.feuille_id) !== String(feuilleFilter)) return false;
+      if (coupureFilter && String(fiche.coupure_id) !== String(coupureFilter)) return false;
+      if (echelleFilter && String(fiche.echelle_id) !== String(echelleFilter)) return false;
+      if (formatFilter && String(fiche.format) !== String(formatFilter)) return false;
+      if (operateurFilter && String(fiche.operateur_id) !== String(operateurFilter)) return false;
+
+      return true;
+    });
+  }, [coupureFilter, echelleFilter, feuilleFilter, fiches, formatFilter, operateurFilter]);
+
+  const hasFilters = feuilleFilter || coupureFilter || echelleFilter || formatFilter || operateurFilter;
+
+  const resetFilters = () => {
+    setFeuilleFilter("");
+    setCoupureFilter("");
+    setEchelleFilter("");
+    setFormatFilter("");
+    setOperateurFilter("");
+  };
+
   useEffect(() => {
-    setData("emplacement", selectedFiche?.emplacement || "");
     setData("operateur_id", selectedFiche?.operateur_id ? String(selectedFiche.operateur_id) : "");
   }, [data.metadata_id]);
 
@@ -64,16 +136,13 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
         <div className="page-container">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Validation export</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Generation des fichiers XML et PDF de la fiche coupure
-              </p>
+              <h1 className="text-2xl font-bold text-slate-900">Validation export</h1>
             </div>
           </div>
 
           {metadata.length === 0 && (
-            <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Aucune metadata disponible.
+            <div className="alert-warning mb-4">
+              Aucune métadonnée disponible.
             </div>
           )}
 
@@ -93,28 +162,21 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
                 operateurs={operateurs}
               />
 
-              <TextInput
-                label="Emplacement d'enregistrément"
-                name="emplacement"
-                value={data.emplacement}
-                error={errors.emplacement}
-                onChange={setData}
-              />
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="submit"
                 disabled={metadata.length === 0 || !data.metadata_id}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary"
               >
-                Telecharger XML
+                Télécharger XML
               </button>
               <button
                 type="submit"
                 formAction="/validation-export/pdf"
                 disabled={metadata.length === 0 || !data.metadata_id}
-                className="rounded border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-secondary"
               >
                 Exporter PDF
               </button>
@@ -122,30 +184,106 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
           </form>
 
           <section className="card">
-            <h2 className="text-lg font-semibold text-gray-900">Fiches coupure</h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Liste des validations</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {filteredFiches.length} / {fiches.length} validations
+                </p>
+              </div>
 
-            {fiches.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-600">Aucune fiche coupure.</p>
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="btn-secondary px-3 py-2"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <FeuilleCoupureFilter
+                rows={fiches}
+                feuilleValue={feuilleFilter}
+                coupureValue={coupureFilter}
+                onChange={({ feuilleId, coupureId }) => {
+                  setFeuilleFilter(feuilleId);
+                  setCoupureFilter(coupureId);
+                }}
+              />
+
+              <SelectFilter label="Échelle" value={echelleFilter} onChange={setEchelleFilter}>
+                <option value="">Toutes les échelles</option>
+                {echelles.map((echelle) => (
+                  <option key={echelle.id} value={echelle.id}>
+                    {echelle.label}
+                  </option>
+                ))}
+              </SelectFilter>
+
+              <SelectFilter label="Format" value={formatFilter} onChange={setFormatFilter}>
+                <option value="">Tous les formats</option>
+                {formats.map((format) => (
+                  <option key={format} value={format}>
+                    {format.toUpperCase()}
+                  </option>
+                ))}
+              </SelectFilter>
+
+              <SelectFilter
+                label="Opérateur"
+                value={operateurFilter}
+                onChange={setOperateurFilter}
+              >
+                <option value="">Tous les opérateurs</option>
+                {validationOperateurs.map((operateur) => (
+                  <option key={operateur.id} value={operateur.id}>
+                    {operateur.label}
+                  </option>
+                ))}
+              </SelectFilter>
+            </div>
+
+            {filteredFiches.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600">Aucune validation.</p>
             ) : (
-              <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50">
+              <div className="table-wrapper mt-4">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Feuille</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Coupure</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                        Emplacement
-                      </th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Operateur</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Feuille</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Coupure</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Échelle</th>
+
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Format</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Opérateur</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">Contrôles</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">État</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {fiches.map((fiche) => (
-                      <tr key={fiche.metadata_id}>
-                        <td className="px-3 py-2 text-gray-700">{fiche.feuille_nom || "-"}</td>
-                        <td className="px-3 py-2 text-gray-700">{fiche.coupure_nom || "-"}</td>
-                        <td className="px-3 py-2 text-gray-700">{fiche.emplacement || "-"}</td>
-                        <td className="px-3 py-2 text-gray-700">{fiche.operateur_nom || "-"}</td>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredFiches.map((fiche) => (
+                      <tr key={fiche.metadata_id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 text-slate-700">{fiche.feuille_nom || "-"}</td>
+                        <td className="px-3 py-2 text-slate-700">{fiche.coupure_nom || "-"}</td>
+                        <td className="px-3 py-2 text-slate-700">
+                          {fiche.echelle_valeur || "-"}
+                        </td>
+
+                        <td className="px-3 py-2 text-slate-700">
+                          {fiche.format ? fiche.format.toUpperCase() : "-"}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          {fiche.operateur_nom || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          {fiche.controle_count ?? 0}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          {fiche.validated ? "Validée" : "À valider"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

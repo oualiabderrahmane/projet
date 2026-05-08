@@ -32,9 +32,9 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="fixed bottom-6 right-6 p-3 rounded-full bg-slate-800 dark:bg-white text-white dark:text-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-110 hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 z-50 focus:outline-none focus:ring-4 focus:ring-primary-500/30"
-            aria-label="Toggle Dark Mode"
-            title="Toggle Dark Mode"
+            className="fixed bottom-6 right-6 p-3 rounded-full bg-slate-800 dark:bg-white text-white dark:text-slate-800 shadow-sm hover:scale-110 hover:shadow-sm transition-all duration-300 z-50 focus:outline-none focus:ring-4 focus:ring-primary-500/30"
+            aria-label="Changer le thème"
+            title="Changer le thème"
         >
             {isDark ? (
                 // Sun icon for dark mode (to switch to light)

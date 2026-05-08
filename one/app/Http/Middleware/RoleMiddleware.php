@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -18,8 +19,12 @@ class RoleMiddleware
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // check if user has any of the required roles
-        if (!$user->roles()->whereIn('name', $roles)->exists()) {
+        $allowedRoles = collect($roles)
+            ->map(fn (string $role) => User::normalizeRoleName($role))
+            ->all();
+        $userRole = User::normalizeRoleName($user->role?->name);
+
+        if (!in_array($userRole, $allowedRoles, true)) {
             if (!$request->expectsJson()) {
                 abort(403);
             }

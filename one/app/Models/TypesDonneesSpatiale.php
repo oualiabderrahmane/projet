@@ -29,14 +29,9 @@ class TypesDonneesSpatiale extends Model
 	];
 
 	public function completements()
-{
-    return $this->belongsToMany(
-        CompletementSpatial::class,
-        'completement_spatial_type',
-        'type_donnees_id',
-        'completement_spatial_id'
-    );
-}
+	{
+		return $this->completements_spatials();
+	}
 
 	public function completements_spatials()
 	{

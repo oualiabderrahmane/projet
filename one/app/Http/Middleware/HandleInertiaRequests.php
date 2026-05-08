@@ -28,12 +28,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => $request->user()?->load('roles:id,name'),
+                'user' => fn () => $request->user()?->load(['role:id,name']),
             ],
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'id' => fn () => $request->session()->has('success') || $request->session()->has('error')
+                    ? uniqid('flash_', true)
+                    : null,
             ],
         ];
     }

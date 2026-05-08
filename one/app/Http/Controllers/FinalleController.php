@@ -112,16 +112,7 @@ class FinalleController extends Controller
         $this->addPdfText($commands, $x, $y, $text, $font, $size);
     }
 
-    private function addPdfLine(array &$commands, float $x1, float $y1, float $x2, float $y2): void
-    {
-        $commands[] = sprintf(
-            '%s %s m %s %s l S',
-            $this->pdfNumber($x1),
-            $this->pdfNumber($y1),
-            $this->pdfNumber($x2),
-            $this->pdfNumber($y2)
-        );
-    }
+
 
     private function addPdfField(
         array &$commands,
@@ -135,7 +126,7 @@ class FinalleController extends Controller
     ): void {
         $this->addPdfText($commands, $labelX, $y, $label, 'F2', 11);
         $this->addPdfText($commands, $valueX, $y, $this->pdfValue($value, $limit), 'F1', 11);
-        $this->addPdfLine($commands, $valueX, $y - 3, $endX, $y - 3);
+
     }
 
     private function wrapPdfStream(string $stream): string
@@ -192,10 +183,7 @@ class FinalleController extends Controller
 
         $commands = ['0.8 w'];
 
-        $this->addPdfLine($commands, 45, 50, 550, 50);
-        $this->addPdfLine($commands, 550, 50, 550, 815);
-        $this->addPdfLine($commands, 550, 815, 45, 815);
-        $this->addPdfLine($commands, 45, 815, 45, 50);
+
 
         $this->addCenteredPdfText($commands, $this->pdfLabel('Fiche de M&eacute;tadonn&eacute;es'), 785, 'F2', 16);
 

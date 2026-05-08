@@ -11,13 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('operateurs', function (Blueprint $table) {
-            $table->id();
-            $table->string('nom', 100);
-            $table->string('grade', 100)->nullable();
-            $table->string('fonction', 100)->nullable();
-            $table->string('type', 50);
-        });
+        // La table operateurs a ete retiree : les phases pointent vers users.operateur_id.
     }
 
     /**
@@ -25,6 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('operateurs');
+        //
     }
 };

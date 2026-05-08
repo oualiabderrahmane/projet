@@ -48,6 +48,7 @@ class ControleCartographiqueController extends Controller
 
         $controlesEffectues = ControleCartographique::with([
             'metadata.coupure.feuille',
+            'metadata.echelle',
             'types_controle',
             'niveaux_controle',
             'operateur',
@@ -57,9 +58,13 @@ class ControleCartographiqueController extends Controller
             ->map(fn (ControleCartographique $controle) => [
                 'id' => $controle->id,
                 'metadata_id' => $controle->metadata_id,
+                'feuille_id' => $controle->metadata?->coupure?->feuille?->id,
                 'feuille_nom' => $controle->metadata?->coupure?->feuille?->nom,
+                'coupure_id' => $controle->metadata?->coupure?->id,
                 'coupure_nom' => $controle->metadata?->coupure?->nom,
                 'coupure_label' => $controle->metadata?->coupure?->label,
+                'echelle_id' => $controle->metadata?->echelle?->id,
+                'echelle_valeur' => $controle->metadata?->echelle?->valeur,
                 'type_controle_id' => $controle->type_controle_id,
                 'type_controle_nom' => $controle->types_controle?->nom,
                 'niveau_controle_id' => $controle->niveau_controle_id,
@@ -111,11 +116,15 @@ class ControleCartographiqueController extends Controller
 
             if ($existingControle) {
                 throw ValidationException::withMessages([
-                    'type_controle_id' => 'Ce controle est deja sauvegarde et ne peut pas etre modifie.',
+                    'type_controle_id' => 'Ce contrôle est déjà sauvegardé et ne peut pas être modifié.',
                 ]);
             }
 
             $previous = RedactionCartographique::where('metadata_id', $validated['metadata_id'])->first();
+            $dateEdition = $validated['date_edition']
+                ?? ControleCartographique::where('metadata_id', $validated['metadata_id'])
+                    ->whereNotNull('date_edition')
+                    ->value('date_edition');
 
             $record = new ControleCartographique([
                 'metadata_id' => $validated['metadata_id'],
@@ -124,7 +133,7 @@ class ControleCartographiqueController extends Controller
                 'operateur_id' => $validated['operateur_id'] ?? null,
                 ...$this->automaticPhaseDates($previous),
                 'date_controle' => $validated['date_controle'] ?? null,
-                'date_edition' => $validated['date_edition'] ?? null,
+                'date_edition' => $dateEdition,
             ]);
 
             $record->id = $this->nextId(ControleCartographique::class);
@@ -142,6 +151,29 @@ class ControleCartographiqueController extends Controller
             ->with('success', 'Contrôle cartographique créé avec succès.');
     }
 
+    public function updateDateEdition(Request $request)
+    {
+        $validated = $request->validate([
+            'metadata_id' => [
+                'required',
+                'exists:metadata,id',
+                Rule::exists('controle_cartographique', 'metadata_id'),
+            ],
+            'date_edition' => 'required|date',
+        ]);
+
+        ControleCartographique::where('metadata_id', $validated['metadata_id'])
+            ->update(['date_edition' => $validated['date_edition']]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['date_edition' => $validated['date_edition']]);
+        }
+
+        return redirect()
+            ->route('controle-cartographique.create')
+            ->with('success', 'Date d\'édition enregistrée avec succès.');
+    }
+
     public function show($id)
     {
         return ControleCartographique::findOrFail($id);
@@ -152,12 +184,30 @@ class ControleCartographiqueController extends Controller
         ControleCartographique::findOrFail($id);
 
         throw ValidationException::withMessages([
-            'controle' => 'Un controle sauvegarde ne peut pas etre modifie.',
+            'controle' => 'Un contrôle sauvegardé ne peut pas être modifié.',
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return ControleCartographique::destroy($id);
+        try {
+            $deleted = ControleCartographique::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('controle-cartographique.create')
+                ->with('error', 'Suppression impossible : ce controle est utilise ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('controle-cartographique.create')
+            ->with('success', 'Controle supprime avec succes.');
     }
 }

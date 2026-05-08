@@ -22,6 +22,8 @@ function uniquePairs(rows) {
         code,
         feuilleId,
         coupureId,
+        metadataId: idValue(row.metadata_id ?? row.id),
+        row,
       });
     }
   });
@@ -36,8 +38,10 @@ export default function FeuilleCoupureFilter({
   feuilleValue = "",
   coupureValue = "",
   onChange,
-  label = "Feuille et Coupure",
+  label = "Feuille / Coupure",
   placeholder = "Toutes les feuilles et coupures",
+  disabled = false,
+  error = null,
 }) {
   const options = useMemo(() => uniquePairs(rows), [rows]);
   const selectedValue = coupureValue
@@ -46,7 +50,7 @@ export default function FeuilleCoupureFilter({
 
   const handleChange = (value) => {
     if (!value) {
-      onChange?.({ feuilleId: "", coupureId: "" });
+      onChange?.({ feuilleId: "", coupureId: "", metadataId: "", row: null });
       return;
     }
 
@@ -59,6 +63,8 @@ export default function FeuilleCoupureFilter({
     onChange?.({
       feuilleId: option.feuilleId,
       coupureId: option.coupureId,
+      metadataId: option.metadataId,
+      row: option.row,
     });
   };
 
@@ -81,6 +87,8 @@ export default function FeuilleCoupureFilter({
       options={options}
       placeholder={placeholder}
       searchPlaceholder="Rechercher, ex: F1123C1"
+      disabled={disabled}
+      error={error}
     />
   );
 }

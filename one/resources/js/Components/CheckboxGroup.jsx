@@ -1,7 +1,7 @@
 function ErrorMessage({ message }) {
   if (!message) return null;
 
-  return <p className="mt-1 text-sm text-red-600">{message}</p>;
+  return <p className="mt-1 text-sm font-medium text-red-600">{message}</p>;
 }
 
 export default function CheckboxGroup({
@@ -13,39 +13,48 @@ export default function CheckboxGroup({
   onChange,
   disabled = false,
 }) {
+  const selectedValues = value.map((item) => String(item));
+
   const toggleValue = (id) => {
     const stringId = String(id);
 
-    if (value.includes(stringId)) {
-      onChange(name, value.filter((item) => item !== stringId));
+    if (selectedValues.includes(stringId)) {
+      onChange(name, selectedValues.filter((item) => item !== stringId));
     } else {
-      onChange(name, [...value, stringId]);
+      onChange(name, [...selectedValues, stringId]);
     }
   };
 
   return (
     <div>
-      <span className="block text-sm font-medium text-gray-700">{label}</span>
+      <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
 
-      <div className="mt-2 grid gap-2 rounded border border-gray-300 bg-white p-3 md:grid-cols-2">
+      <div className="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-2 dark:border-slate-800 dark:bg-slate-900/60">
+        {options.length === 0 && (
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            Aucune donnée disponible.
+          </span>
+        )}
+
         {options.map((option) => {
           const optionId = String(option.id);
+          const optionLabel = option.nom ?? option.label ?? option.name ?? optionId;
 
           return (
             <label
               key={optionId}
-              className="flex items-center gap-2 text-sm text-gray-700"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 transition hover:bg-white dark:text-slate-200 dark:hover:bg-slate-900"
             >
               <input
                 type="checkbox"
                 value={optionId}
-                checked={value.includes(optionId)}
+                checked={selectedValues.includes(optionId)}
                 disabled={disabled}
                 onChange={() => toggleValue(optionId)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 shrink-0 rounded border-slate-300 p-0 text-primary-600 focus:ring-primary-500"
               />
 
-              {option.nom}
+              <span className="leading-5">{optionLabel}</span>
             </label>
           );
         })}

@@ -43,19 +43,20 @@ function ErrorMessage({ message }) {
   return <p className="mt-1 text-sm text-red-600">{message}</p>;
 }
 
-function TextInput({ label, name, value, error, onChange }) {
+function TextInput({ label, name,placeholder, value, error, onChange }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
         id={name}
         name={name}
         type="text"
+        placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       />
       <ErrorMessage message={error} />
     </div>
@@ -65,7 +66,7 @@ function TextInput({ label, name, value, error, onChange }) {
 function SelectInput({ label, name, value, error, onChange, children }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <select
@@ -73,7 +74,7 @@ function SelectInput({ label, name, value, error, onChange, children }) {
         name={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
-        className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
       >
         {children}
       </select>
@@ -85,6 +86,7 @@ function SelectInput({ label, name, value, error, onChange, children }) {
 export default function ExtractionCreate({
   metadata = [],
   modesExtraction = [],
+  logicielsUtilises = [],
   operateurs = [],
   extractionRecord = null,
   onCancelEdit,
@@ -121,6 +123,23 @@ export default function ExtractionCreate({
     ];
   }, [extractionRecord, isEditing, metadata]);
 
+  const logicielOptions = useMemo(() => {
+    if (
+      !data.logiciel_utilise ||
+      logicielsUtilises.some((logiciel) => logiciel.nom === data.logiciel_utilise)
+    ) {
+      return logicielsUtilises;
+    }
+
+    return [
+      ...logicielsUtilises,
+      {
+        id: `current-${data.logiciel_utilise}`,
+        nom: data.logiciel_utilise,
+      },
+    ];
+  }, [data.logiciel_utilise, logicielsUtilises]);
+
   useEffect(() => {
     setData(extractionToForm(extractionRecord));
     clearErrors();
@@ -152,16 +171,16 @@ export default function ExtractionCreate({
   };
 
   return (
-    <section className="rounded bg-white p-6 shadow">
+    <section className="card">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {isEditing ? "Modifier extraction altimetrique" : "Creer extraction altimetrique"}
+        <h2 className="text-lg font-semibold text-slate-900">
+          {isEditing ? "Modifier l'extraction altimétrique" : "Créer une extraction altimétrique"}
         </h2>
       </div>
 
       {metadataForForm.length === 0 && (
-        <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Aucune metadata disponible pour une nouvelle extraction.
+        <div className="alert-warning mb-4">
+          Aucune métadonnée disponible pour une nouvelle extraction.
         </div>
       )}
 
@@ -185,23 +204,31 @@ export default function ExtractionCreate({
           />
 
           <TextInput
-            label="Résolution en metre"
+            label="Résolution"
+            placeholder="En mètre(ex: 0.5)"
             name="resolution"
             value={data.resolution}
             error={errors.resolution}
             onChange={setData}
           />
 
-          <TextInput
+          <SelectInput
             label="Logiciel utilisé"
             name="logiciel_utilise"
             value={data.logiciel_utilise}
             error={errors.logiciel_utilise}
             onChange={setData}
-          />
+          >
+            <option value="">Aucun logiciel</option>
+            {logicielOptions.map((logiciel) => (
+              <option key={logiciel.id} value={logiciel.nom}>
+                {logiciel.nom}
+              </option>
+            ))}
+          </SelectInput>
 
           <TextInput
-            label="Version logiciel"
+            label="Version du logiciel"
             name="version_logiciel"
             value={data.version_logiciel}
             error={errors.version_logiciel}
@@ -231,7 +258,7 @@ export default function ExtractionCreate({
               type="button"
               onClick={handleCancelEdit}
               disabled={processing}
-              className="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-secondary"
             >
               Annuler
             </button>
@@ -239,7 +266,7 @@ export default function ExtractionCreate({
           <button
             type="submit"
             disabled={processing || metadataForForm.length === 0}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary"
           >
             {processing ? "Enregistrement..." : isEditing ? "Modifier" : "Enregistrer"}
           </button>

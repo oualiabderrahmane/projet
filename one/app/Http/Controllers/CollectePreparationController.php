@@ -201,15 +201,37 @@ class CollectePreparationController extends Controller
     }
 
     // DELETE
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $cp = CollectePreparation::find($id);
 
         if (!$cp) {
-            return response()->json(['message' => 'Not found'], 404);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Not found'], 404);
+            }
+
+            return redirect()
+                ->route('collecte-preparation.home')
+                ->with('error', 'Preparation introuvable.');
         }
 
-        $cp->delete();
+        try {
+            $cp->delete();
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('collecte-preparation.home')
+                ->with('error', 'Suppression impossible : cette preparation est utilisee ailleurs.');
+        }
+
+        if (!$request->expectsJson()) {
+            return redirect()
+                ->route('collecte-preparation.home')
+                ->with('success', 'Preparation supprimee avec succes.');
+        }
 
         return response()->json(['message' => 'Deleted']);
     }

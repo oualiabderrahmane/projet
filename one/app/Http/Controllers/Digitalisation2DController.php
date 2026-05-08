@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\UsesPhaseFields;
+use App\Models\Echelle;
+use App\Models\Pay;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -11,8 +13,9 @@ use Inertia\Inertia;
 use App\Models\Digitalisation2d;
 use App\Models\ExtractionAltimetrique;
 use App\Models\Format;
+use App\Models\LogicielUtilise;
 use App\Models\Metadata;
-use App\Models\ModeRealisation;
+use App\Models\ModesRealisation;
 
 class Digitalisation2DController extends Controller
 {
@@ -24,6 +27,7 @@ class Digitalisation2DController extends Controller
         'SHP',
         'GDB',
         'MDB',
+        'Autre',
     ];
 
     private function nextId(string $modelClass): int
@@ -34,6 +38,21 @@ class Digitalisation2DController extends Controller
             ->value('id');
 
         return ((int) $lastId) + 1;
+    }
+
+
+
+    private function digitalisationModeRows()
+{
+    return ModesRealisation::all(['id', 'nom']);
+}
+
+    private function digitalisationFormatRows()
+    {
+        return Format::whereIn('nom', self::DIGITALISATION_FORMATS)
+            ->get(['id', 'nom'])
+            ->sortBy(fn (Format $format) => array_search($format->nom, self::DIGITALISATION_FORMATS, true))
+            ->values();
     }
 
     private function formatMetadataRows(Collection $metadataRows)
@@ -121,10 +140,12 @@ class Digitalisation2DController extends Controller
         return Inertia::render('Degitalisation/HomeDigitalisation', [
             'metadata' => $metadata['all'],
             'metadataForDigitalisation' => $metadata['available'],
-            'modesRealisation' => ModeRealisation::orderBy('nom')->get(['id', 'nom']),
-            'formats' => Format::whereIn('nom', self::DIGITALISATION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'modesRealisation' => $this->digitalisationModeRows(),
+            'formats' => $this->digitalisationFormatRows(),
+            'logicielsUtilises' => LogicielUtilise::orderBy('id')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('digitalisation'),
             'digitalisations' => $this->digitalisationRows(),
+            'Echelle'=>Echelle::all(['id', 'valeur']),
         ]);
     }
 
@@ -134,8 +155,9 @@ class Digitalisation2DController extends Controller
 
         return Inertia::render('Degitalisation/Digitalisation', [
             'metadata' => $metadata['available'],
-            'modesRealisation' => ModeRealisation::orderBy('nom')->get(['id', 'nom']),
-            'formats' => Format::whereIn('nom', self::DIGITALISATION_FORMATS)->orderBy('id')->get(['id', 'nom']),
+            'modesRealisation' => $this->digitalisationModeRows(),
+            'formats' => $this->digitalisationFormatRows(),
+            'logicielsUtilises' => LogicielUtilise::orderBy('id')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('digitalisation'),
         ]);
     }
@@ -224,8 +246,26 @@ class Digitalisation2DController extends Controller
             ->with('success', 'Digitalisation modifiée avec succès.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return Digitalisation2d::destroy($id);
+        try {
+            $deleted = Digitalisation2d::destroy($id);
+        } catch (\Throwable $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Suppression impossible'], 409);
+            }
+
+            return redirect()
+                ->route('digitalisation.home')
+                ->with('error', 'Suppression impossible : cette digitalisation est utilisee ailleurs.');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => $deleted]);
+        }
+
+        return redirect()
+            ->route('digitalisation.home')
+            ->with('success', 'Digitalisation supprimee avec succes.');
     }
 }

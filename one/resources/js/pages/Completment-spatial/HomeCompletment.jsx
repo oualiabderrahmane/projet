@@ -3,7 +3,16 @@ import { useState } from "react";
 import CheckboxGroup from "../../Components/CheckboxGroup";
 import PhaseFields from "../../Components/PhaseFields";
 import Repeted from "../../Components/Repeted";
+import TimedFlash from "../../Components/TimedFlash";
 import CompletementSpatialList from "./CompletmentSpatialList";
+
+const emptyForm = {
+  feuille_id: "",
+  coupure_id: "",
+  metadata_id: "",
+  operateur_id: "",
+  type_donnees_ids: [],
+};
 
 export default function HomeCompletment({
   metadata = [],
@@ -11,6 +20,7 @@ export default function HomeCompletment({
   typesDonnees = [],
   operateurs = [],
   completements = [],
+    echelles = [],
 }) {
   const { props } = usePage();
   const flashSuccess = props.flash?.success;
@@ -19,23 +29,29 @@ export default function HomeCompletment({
   const [editingCompletement, setEditingCompletement] = useState(null);
   const isEditing = editingCompletement !== null;
 
-  const { data, setData, post, put, processing, errors, reset, recentlySuccessful } =
-    useForm({
-      feuille_id: "",
-      coupure_id: "",
-      metadata_id: "",
-      operateur_id: "",
-      type_donnees_ids: [],
-    });
+  const { data, setData, post, put, processing, errors, reset } =
+    useForm(emptyForm);
 
   const handleEdit = (completement) => {
+    if (!completement?.id) {
+      setEditingCompletement(null);
+      setData({
+        ...emptyForm,
+        feuille_id: String(completement?.feuille_id ?? ""),
+        coupure_id: String(completement?.coupure_id ?? ""),
+        metadata_id: String(completement?.metadata_id ?? ""),
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     setEditingCompletement(completement);
     setData({
       feuille_id: String(completement.feuille_id ?? ""),
       coupure_id: String(completement.coupure_id ?? ""),
       metadata_id: String(completement.metadata_id ?? ""),
       operateur_id: String(completement.operateur_id ?? ""),
-      type_donnees_ids: (completement.types_donnees_spatiales ?? []).map((t) => t.id),
+      type_donnees_ids: (completement.types_donnees_spatiales ?? []).map((t) => String(t.id)),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -79,22 +95,17 @@ export default function HomeCompletment({
           {/* En-tête */}
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Complètement spatial</h1>
-              <p className="page-subtitle">Connecte : {user?.name || "—"}</p>
+              <h1 className="text-2xl font-bold text-slate-900">Complètement spatial</h1>
+
             </div>
           </div>
 
-          {/* Succès */}
-          {(flashSuccess || recentlySuccessful) && (
-            <div className="alert-success">
-              {flashSuccess || "Complètement spatial enregistré avec succès."}
-            </div>
-          )}
+          <TimedFlash success={flashSuccess} />
 
           {/* Aucune metadata dispo (mode création seulement) */}
           {!isEditing && metadataForCompletement.length === 0 && (
-            <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Aucune metadata disponible pour un nouveau completement spatial.
+            <div className="alert-warning">
+              Aucune métadonnée disponible pour un nouveau complètement spatial.
             </div>
           )}
 
@@ -102,14 +113,11 @@ export default function HomeCompletment({
           <form onSubmit={handleSubmit} className="card">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {isEditing ? "Modifier le completement spatial" : "Nouveau completement spatial"}
-                </h2>
                 {isEditing && (
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     Feuille : <span className="font-medium">{editingCompletement.feuille_nom}</span>
                     &ensp;·&ensp;Coupure : <span className="font-medium">{editingCompletement.coupure_nom}</span>
-                    &ensp;·&ensp;Echelle : <span className="font-medium">{editingCompletement.echelle_valeur}</span>
+                    &ensp;·&ensp;Échelle : <span className="font-medium">{editingCompletement.echelle_valeur}</span>
                   </p>
                 )}
               </div>
@@ -118,7 +126,7 @@ export default function HomeCompletment({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="rounded border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  className="btn-secondary px-3 py-1.5"
                 >
                   Annuler
                 </button>
@@ -144,7 +152,7 @@ export default function HomeCompletment({
 
               <div className="md:col-span-2">
                 <CheckboxGroup
-                  label="Données de Complétment"
+                  label="Données de complètement"
                   name="type_donnees_ids"
                   value={data.type_donnees_ids}
                   error={errors.type_donnees_ids}
@@ -160,12 +168,12 @@ export default function HomeCompletment({
               <button
                 type="submit"
                 disabled={submitDisabled}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary"
               >
                 {processing
                   ? "Enregistrement..."
                   : isEditing
-                  ? "Mettre a jour"
+                  ? "Mettre à jour"
                   : "Enregistrer"}
               </button>
             </div>
@@ -175,6 +183,8 @@ export default function HomeCompletment({
           <CompletementSpatialList
             metadata={metadata}
             completements={completements}
+            typesDonnees={typesDonnees}
+            echelles={echelles}
             editingCompletementId={editingCompletement?.id ?? null}
             onEdit={handleEdit}
           />
