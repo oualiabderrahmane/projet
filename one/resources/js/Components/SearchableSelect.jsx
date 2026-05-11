@@ -19,6 +19,10 @@ export default function SearchableSelect({
   searchPlaceholder = "Rechercher",
   disabled = false,
   error = null,
+  containerClassName = "relative flex flex-col gap-1.5",
+  labelClassName = "text-sm font-medium text-slate-700 dark:text-slate-200",
+  inputClassName = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+  menuClassName = "absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900",
 }) {
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -91,8 +95,8 @@ export default function SearchableSelect({
   };
 
   return (
-    <div className="relative flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</label>
+    <div className={containerClassName}>
+      <label className={labelClassName}>{label}</label>
       <input
         type="search"
         value={inputValue}
@@ -101,10 +105,10 @@ export default function SearchableSelect({
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
         onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
-        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        className={inputClassName}
       />
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <div className={menuClassName}>
           <button
             type="button"
             onMouseDown={(event) => {

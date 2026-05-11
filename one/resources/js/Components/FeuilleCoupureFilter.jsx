@@ -4,7 +4,7 @@ import { formatFeuilleCoupureCode } from "../Utils/feuilleCoupureCode";
 
 const idValue = (value) => (value === null || value === undefined ? "" : String(value));
 
-function uniquePairs(rows) {
+function uniquePairs(rows, showDetails = false) {
   const coupures = new Map();
 
   rows.forEach((row) => {
@@ -15,11 +15,15 @@ function uniquePairs(rows) {
 
     if (feuilleId && coupureId && feuilleNom && coupureNom) {
       const code = formatFeuilleCoupureCode(feuilleNom, coupureNom);
+      const details = [row.coupure_label, row.pays_nom, row.echelle_valeur]
+        .filter(Boolean)
+        .join(" - ");
 
       coupures.set(`${feuilleId}:${coupureId}`, {
         id: `C:${feuilleId}:${coupureId}`,
-        label: `${code}`,
+        label: showDetails && details ? `${code} - ${details}` : code,
         code,
+        searchText: [code, feuilleNom, coupureNom, details].filter(Boolean).join(" "),
         feuilleId,
         coupureId,
         metadataId: idValue(row.metadata_id ?? row.id),
@@ -42,8 +46,13 @@ export default function FeuilleCoupureFilter({
   placeholder = "Toutes les feuilles et coupures",
   disabled = false,
   error = null,
+  containerClassName,
+  labelClassName,
+  inputClassName,
+  menuClassName,
+  showDetails = false,
 }) {
-  const options = useMemo(() => uniquePairs(rows), [rows]);
+  const options = useMemo(() => uniquePairs(rows, showDetails), [rows, showDetails]);
   const selectedValue = coupureValue
     ? `C:${idValue(feuilleValue)}:${idValue(coupureValue)}`
     : "";
@@ -68,14 +77,21 @@ export default function FeuilleCoupureFilter({
     });
   };
 
-  const filterCodeOption = (option, { compactQuery }) => {
+  const filterCodeOption = (option, { query, compactQuery }) => {
     const code = String(option.code || "").toLowerCase();
+    const searchText = String(option.searchText || "").toLowerCase();
+    const compactSearchText = searchText.replace(/\s+/g, "");
 
     if (!compactQuery) {
       return true;
     }
 
-    return code.startsWith(compactQuery) || code.startsWith(`f${compactQuery}`);
+    return (
+      code.startsWith(compactQuery) ||
+      code.startsWith(`f${compactQuery}`) ||
+      searchText.includes(query) ||
+      compactSearchText.includes(compactQuery)
+    );
   };
 
   return (
@@ -89,6 +105,10 @@ export default function FeuilleCoupureFilter({
       searchPlaceholder="Rechercher, ex: F1123C1"
       disabled={disabled}
       error={error}
+      containerClassName={containerClassName}
+      labelClassName={labelClassName}
+      inputClassName={inputClassName}
+      menuClassName={menuClassName}
     />
   );
 }

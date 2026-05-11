@@ -132,7 +132,7 @@ class CollectePreparationController extends Controller
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'type_osm_id' => 'nullable|exists:types_osm,id',
-            'geonames_annee_mise_a_jour' => 'nullable|integer',
+            'geonames_annee_mise_a_jour' => 'nullable|string|max:150',
             'gadm_version' => 'nullable|string|max:50',
         ]);
 
@@ -177,7 +177,7 @@ class CollectePreparationController extends Controller
             'imagerie' => 'nullable|string|max:150',
             'resolution' => 'nullable|string|max:100',
             'type_osm_id' => 'nullable|exists:types_osm,id',
-            'geonames_annee_mise_a_jour' => 'nullable|integer',
+            'geonames_annee_mise_a_jour' => 'nullable|string|max:150',
             'gadm_version' => 'nullable|string|max:50',
         ]);
 

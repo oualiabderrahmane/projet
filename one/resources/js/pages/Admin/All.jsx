@@ -96,15 +96,8 @@ function UserAvatar({ user, className = "h-11 w-11 rounded-lg text-sm" }) {
   );
 }
 
-function MetricCard({ label, value, detail }) {
-  return (
-    <div className="card p-5">
-      <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">{value}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-500">{detail}</p>
-    </div>
-  );
-}
+
+
 
 export default function All({
   users = [],
@@ -199,23 +192,8 @@ export default function All({
     {
       label: "Utilisateurs",
       value: stats.total,
-      detail: `${stats.filtered} affiche(s) avec les filtres`,
     },
-    {
-      label: "Roles",
-      value: roles.length,
-      detail: `${stats.admins} profil(s) admin detecte(s)`,
-    },
-    {
-      label: "Grades",
-      value: grades.length,
-      detail: "References disponibles",
-    },
-    {
-      label: "Postes",
-      value: postes.length,
-      detail: "References disponibles",
-    },
+
   ];
   const userTableColSpan = canManageUsers ? 9 : 6;
   const userTableMinWidth = canManageUsers ? "min-w-[1320px]" : "min-w-[980px]";
@@ -493,17 +471,13 @@ export default function All({
           </section>
         )}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {metricCards.map((metric) => (
-            <MetricCard key={metric.label} {...metric} />
-          ))}
-        </section>
+        
 
         <section className="card p-0">
           <div className="flex flex-col gap-4 border-b border-slate-200/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-primary-600">Filtres</p>
-              <h2 className="mt-1 text-xl font-black text-slate-950">Trouver le bon compte rapidement</h2>
+
             </div>
             <button
               type="button"
@@ -567,14 +541,11 @@ export default function All({
         <section className="card p-0">
           <div className="flex flex-col gap-4 border-b border-slate-200/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-primary-600">Resultats</p>
               <h2 className="mt-1 text-xl font-black text-slate-950">
                 {filteredUsers.length} utilisateur(s)
               </h2>
             </div>
-            <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-600">
-              {hasActiveFilters ? "Filtres actifs" : "Vue complete"}
-            </div>
+
           </div>
 
           <div className="table-wrapper">
@@ -764,9 +735,7 @@ export default function All({
                     <td className="px-6 py-14 text-center" colSpan={userTableColSpan}>
                       <div className="mx-auto max-w-md rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8">
                         <p className="text-lg font-black text-slate-800">Aucun utilisateur trouve</p>
-                        <p className="mt-2 text-sm font-medium text-slate-500">
-                          Modifiez la recherche ou reinitialisez les filtres pour retrouver la liste complete.
-                        </p>
+
                       </div>
                     </td>
                   </tr>

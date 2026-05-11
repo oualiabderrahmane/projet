@@ -195,7 +195,7 @@ public function byCoupure($coupure_id)
 {
     $validated = $request->validate([
         'feuille_nom' => 'required|string|max:100',
-        'coupure_nom' => 'required|string|max:100',
+        'coupure_nom' => 'required|string|in:1,2',
         'coupure_label' => 'required|string|max:100',
         ...$this->coordinateValidationRules(),
         'pays_id' => 'nullable|exists:pays,id',
@@ -266,7 +266,7 @@ public function update(Request $request, Metadata $metadata)
 {
     $validated = $request->validate([
         'feuille_nom' => 'required|string|max:100',
-        'coupure_nom' => 'required|string|max:100',
+        'coupure_nom' => 'required|string|in:1,2',
         'coupure_label' => 'required|string|max:100',
         ...$this->coordinateValidationRules(),
         'pays_id' => 'nullable|exists:pays,id',

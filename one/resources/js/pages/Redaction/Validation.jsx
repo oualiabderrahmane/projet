@@ -46,25 +46,40 @@ function SelectFilter({ label, value, onChange, children }) {
   );
 }
 
-function uniqueOptions(items, idKey, labelKey) {
+function operatorLabel(operateur) {
   return [
-    ...new Map(
-      items
-        .filter((item) => item[idKey] !== null && item[idKey] !== undefined && item[labelKey])
-        .map((item) => [
-          String(item[idKey]),
-          {
-            id: String(item[idKey]),
-            label: item[labelKey],
-          },
-        ])
-    ).values(),
-  ].sort((a, b) => String(a.label).localeCompare(String(b.label)));
+    operateur.grade,
+    operateur.nom,
+    operateur.prenom,
+    operateur.poste,
+  ]
+    .filter(Boolean)
+    .join(" - ");
 }
 
-export default function Validation({ metadata = [], fiches = [], operateurs = [] }) {
+function fileNameFromDisposition(disposition, fallback) {
+  const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition || "");
+
+  if (match?.[1]) {
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1];
+    }
+  }
+
+  return match?.[2] || fallback;
+}
+
+export default function Validation({
+  metadata = [],
+  fiches = [],
+  echelles = [],
+  formats = [],
+  operateurs = [],
+}) {
   const { props } = usePage();
-  const errors = props.errors || {};
+  const pageErrors = props.errors || {};
   const csrfToken =
     typeof document === "undefined"
       ? ""
@@ -75,31 +90,52 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
     coupure_id: "",
     metadata_id: "",
     operateur_id: "",
+    emplacement: "",
   });
+  const [downloadErrors, setDownloadErrors] = useState({});
+  const [downloadingFormat, setDownloadingFormat] = useState(null);
   const [feuilleFilter, setFeuilleFilter] = useState("");
   const [coupureFilter, setCoupureFilter] = useState("");
   const [echelleFilter, setEchelleFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
   const [operateurFilter, setOperateurFilter] = useState("");
+  const errors = useMemo(
+    () => ({ ...pageErrors, ...downloadErrors }),
+    [downloadErrors, pageErrors]
+  );
 
   const selectedFiche = useMemo(
     () => fiches.find((fiche) => String(fiche.metadata_id) === String(data.metadata_id)),
     [data.metadata_id, fiches]
   );
 
-  const echelles = useMemo(
-    () => uniqueOptions(fiches, "echelle_id", "echelle_valeur"),
-    [fiches]
+  const echelleOptions = useMemo(
+    () =>
+      echelles
+        .filter((echelle) => echelle.id !== null && echelle.id !== undefined && echelle.valeur)
+        .map((echelle) => ({
+          id: String(echelle.id),
+          label: echelle.valeur,
+        })),
+    [echelles]
   );
 
-  const formats = useMemo(
-    () => [...new Set(fiches.map((fiche) => fiche.format).filter(Boolean))].sort(),
-    [fiches]
+  const formatOptions = useMemo(
+    () =>
+      [...new Set(formats.filter(Boolean).map((format) => String(format)))]
+        .sort((a, b) => a.localeCompare(b)),
+    [formats]
   );
 
   const validationOperateurs = useMemo(
-    () => uniqueOptions(fiches, "operateur_id", "operateur_nom"),
-    [fiches]
+    () =>
+      operateurs
+        .filter((operateur) => operateur.id !== null && operateur.id !== undefined)
+        .map((operateur) => ({
+          id: String(operateur.id),
+          label: operatorLabel(operateur) || operateur.nom || `Operateur ${operateur.id}`,
+        })),
+    [operateurs]
   );
 
   const filteredFiches = useMemo(() => {
@@ -124,6 +160,71 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
     setOperateurFilter("");
   };
 
+  const downloadExport = async (format) => {
+    if (!data.metadata_id || downloadingFormat) {
+      return;
+    }
+
+    setDownloadingFormat(format);
+    setDownloadErrors({});
+
+    const formData = new FormData();
+    formData.append("_token", csrfToken);
+    formData.append("feuille_id", data.feuille_id || "");
+    formData.append("coupure_id", data.coupure_id || "");
+    formData.append("metadata_id", data.metadata_id || "");
+    formData.append("operateur_id", data.operateur_id || "");
+    formData.append("emplacement", data.emplacement || "");
+
+    try {
+      const response = await fetch(
+        format === "pdf" ? "/validation-export/pdf" : "/validation-export/download",
+        {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/pdf, application/xml, application/json",
+            "X-CSRF-TOKEN": csrfToken,
+          },
+        }
+      );
+
+      if (response.status === 419) {
+        setDownloadErrors({ general: "Session expiree. Actualisez la page puis reessayez." });
+        return;
+      }
+
+      if (response.status === 422) {
+        const payload = await response.json().catch(() => ({}));
+        setDownloadErrors(payload.errors || { general: payload.message || "Champs invalides." });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const fileName = fileNameFromDisposition(
+        response.headers.get("Content-Disposition"),
+        format === "pdf" ? "fiche_metadata.pdf" : "iso19115_coupure_fiche.xml"
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      setDownloadErrors({ general: "Impossible de generer le fichier. Verifiez les donnees puis reessayez." });
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
+
   useEffect(() => {
     setData("operateur_id", selectedFiche?.operateur_id ? String(selectedFiche.operateur_id) : "");
   }, [data.metadata_id]);
@@ -146,7 +247,7 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
             </div>
           )}
 
-          <form method="post" action="/validation-export/download" className="card">
+          <form onSubmit={(event) => event.preventDefault()} className="card">
             <input type="hidden" name="_token" value={csrfToken} />
             <input type="hidden" name="feuille_id" value={data.feuille_id} />
             <input type="hidden" name="coupure_id" value={data.coupure_id} />
@@ -164,21 +265,28 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
 
             </div>
 
+            {errors.general && (
+              <div className="alert-warning mt-4">
+                {errors.general}
+              </div>
+            )}
+
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
-                type="submit"
-                disabled={metadata.length === 0 || !data.metadata_id}
+                type="button"
+                onClick={() => downloadExport("xml")}
+                disabled={metadata.length === 0 || !data.metadata_id || Boolean(downloadingFormat)}
                 className="btn-primary"
               >
-                Télécharger XML
+                {downloadingFormat === "xml" ? "Generation XML..." : "Telecharger XML"}
               </button>
               <button
-                type="submit"
-                formAction="/validation-export/pdf"
-                disabled={metadata.length === 0 || !data.metadata_id}
+                type="button"
+                onClick={() => downloadExport("pdf")}
+                disabled={metadata.length === 0 || !data.metadata_id || Boolean(downloadingFormat)}
                 className="btn-secondary"
               >
-                Exporter PDF
+                {downloadingFormat === "pdf" ? "Generation PDF..." : "Exporter PDF"}
               </button>
             </div>
           </form>
@@ -216,7 +324,7 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
 
               <SelectFilter label="Échelle" value={echelleFilter} onChange={setEchelleFilter}>
                 <option value="">Toutes les échelles</option>
-                {echelles.map((echelle) => (
+                {echelleOptions.map((echelle) => (
                   <option key={echelle.id} value={echelle.id}>
                     {echelle.label}
                   </option>
@@ -225,7 +333,7 @@ export default function Validation({ metadata = [], fiches = [], operateurs = []
 
               <SelectFilter label="Format" value={formatFilter} onChange={setFormatFilter}>
                 <option value="">Tous les formats</option>
-                {formats.map((format) => (
+                {formatOptions.map((format) => (
                   <option key={format} value={format}>
                     {format.toUpperCase()}
                   </option>

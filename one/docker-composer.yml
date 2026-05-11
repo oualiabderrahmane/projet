@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    image: mon-projet-laravel-react:latest
+    ports:
+      - "8088:80"
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/var/www/html/storage

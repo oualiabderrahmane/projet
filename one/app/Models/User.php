@@ -123,10 +123,26 @@ class User extends Authenticatable
             ->trim('_')
             ->toString();
 
-        return match ($roleName) {
-            'complement_spatial', 'completment_spatial' => 'completment_spatial',
-            'traitement_vecteur', 'traitment_vecteur' => 'traitment_vecteur',
-            default => $roleName,
-        };
+        if (
+            $roleName === 'complement_spatial' ||
+            $roleName === 'completment_spatial' ||
+            (str_starts_with($roleName, 'compl') && str_contains($roleName, 'spatial'))
+        ) {
+            return 'completment_spatial';
+        }
+
+        if (
+            $roleName === 'traitement_vecteur' ||
+            $roleName === 'traitment_vecteur' ||
+            str_contains($roleName, 'vecteur')
+        ) {
+            return 'traitment_vecteur';
+        }
+
+        if (str_contains($roleName, 'daction')) {
+            return 'redaction';
+        }
+
+        return $roleName;
     }
 }

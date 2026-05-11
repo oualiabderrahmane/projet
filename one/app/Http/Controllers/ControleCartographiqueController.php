@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Models\ControleCartographique;
+use App\Models\Echelle;
 use App\Models\Metadata;
 use App\Models\NiveauxControle;
 use App\Models\RedactionCartographique;
@@ -77,6 +78,7 @@ class ControleCartographiqueController extends Controller
 
         return Inertia::render('Redaction/Controle', [
             'metadata' => $metadata,
+            'echelles' => Echelle::orderBy('id')->get(['id', 'valeur']),
             'typesControle' => TypesControle::orderBy('id')->get(['id', 'nom']),
             'niveauxControle' => NiveauxControle::orderBy('nom')->get(['id', 'nom']),
             'operateurs' => $this->operateurRows('controle'),

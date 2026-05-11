@@ -58,7 +58,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Admin/All', [
-            'users' => User::with(['roles:id,name', 'role:id,name', 'grade:id,nom', 'poste:id,nom'])
+            'users' => User::with(['role:id,name', 'grade:id,nom', 'poste:id,nom'])
                 ->orderBy('nom')
                 ->orderBy('prenom')
                 ->get([
@@ -75,6 +75,7 @@ class UserController extends Controller
                 ])
                 ->map(fn (User $user) => $this->userRow($user))
                 ->values(),
+
             'roles' => Role::orderBy('name')->get(['id', 'name']),
             'grades' => Grade::orderBy('nom')->get(['id', 'nom']),
             'postes' => Poste::orderBy('nom')->get(['id', 'nom']),
@@ -255,7 +256,6 @@ class UserController extends Controller
     private function syncUserRole(User $user, int $roleId): void
     {
         $user->forceFill(['role_id' => $roleId])->save();
-        $user->roles()->sync([$roleId]);
     }
 
     private function ensureAdmin(Request $request): void
@@ -265,9 +265,7 @@ class UserController extends Controller
 
     private function userRow(User $user): array
     {
-        $roles = $user->roles->isNotEmpty()
-            ? $user->roles
-            : collect($user->role ? [$user->role] : []);
+       $roles = collect($user->role ? [$user->role] : []);
 
         return [
             'id' => $user->id,

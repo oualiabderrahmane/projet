@@ -7,13 +7,14 @@ function ErrorMessage({ message }) {
 }
 
 function operatorLabel(operateur) {
+  const role = typeof operateur.role === "object" ? operateur.role?.name : operateur.role;
+
   return [
-    operateur.poste,
     operateur.grade,
     operateur.nom,
     operateur.prenom,
-    operateur.role,
-    console.log(operateur.role)
+    operateur.poste,
+    role,
   ]
     .filter(Boolean)
     .join(" - ");

@@ -3,13 +3,18 @@ import Input from "../../Components/Input";
 
 export default function Login() {
   const { data, setData, post, processing, errors } = useForm({
-    email: "",
+    nom: "",
     password: "",
   });
 
   const submit = (e) => {
     e.preventDefault();
-    post("/login");
+
+    post("/login", {
+      preserveState: false,
+      preserveScroll: false,
+      replace: true,
+    });
   };
 
   return (
@@ -23,14 +28,14 @@ export default function Login() {
 
         <form onSubmit={submit} className="space-y-6">
           <Input
-            label="Adresse e-mail"
-            name="email"
-            id="email"
-            type="email"
-            value={data.email}
+            label="Nom"
+            name="nom"
+            id="nom"
+            type="text"
+            value={data.nom}
             onChange={setData}
-            placeholder="vous@exemple.com"
-            error={errors.email}
+            placeholder="Votre nom"
+            error={errors.nom}
             required
           />
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Models\Role;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,29 +12,30 @@ use Illuminate\Validation\Rule;
 trait UsesPhaseFields
 {
     private const PHASE_ROLE_MAP = [
-        'Collect',
-        'Extraction',
-        'Digitalisation',
-        'Complément Spatial',
-        'Traitement Vecteur',
-        'Rédaction',
+        'collect' => 'collect',
+        'extraction' => 'extraction',
+        'digitalisation' => 'digitalisation',
+        'completment_spatial' => 'completment_spatial',
+        'traitment_vecteur' => 'traitment_vecteur',
+        'redaction' => 'redaction',
+        'controle' => 'redaction',
+        'validation' => 'redaction',
     ];
 
     private function operateurRows(string $type)
     {
         return $this->phaseUserQuery($type)
-            ->with(['grade:id,nom', 'poste:id,nom'])
+            ->with(['grade:id,nom', 'poste:id,nom', 'role:id,name'])
             ->orderBy('nom')
             ->orderBy('prenom')
             ->get(['id', 'nom', 'prenom', 'grade_id', 'poste_id', 'role_id'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
-                'nom' => $user->name,
+                'nom' => $user->nom,
                 'prenom' => $user->prenom,
                 'grade' => $user->grade?->nom,
                 'poste' => $user->poste?->nom,
-                'role' => $user->role?->nom,
-
+                'role' => $user->role?->name,
             ])
             ->values();
     }
@@ -53,13 +55,15 @@ trait UsesPhaseFields
 
     private function phaseUserQuery(string $type): Builder
     {
-        $roleName = strtolower(self::PHASE_ROLE_MAP[$type] ?? $type);
+        $roleName = User::normalizeRoleName(self::PHASE_ROLE_MAP[$type] ?? $type);
+        $roleIds = Role::query()
+            ->get(['id', 'name'])
+            ->filter(fn (Role $role) => User::normalizeRoleName($role->name) === $roleName)
+            ->pluck('id')
+            ->all();
 
         return User::query()
-            ->where(function (Builder $query) use ($roleName): void {
-                $query
-                    ->orWhereHas('role', fn (Builder $roleQuery) => $roleQuery->whereRaw('LOWER(name) = ?', [$roleName]));
-            });
+            ->whereIn('role_id', $roleIds ?: [0]);
     }
 
     private function dateString(mixed $date): ?string

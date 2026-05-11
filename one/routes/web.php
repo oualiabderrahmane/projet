@@ -173,6 +173,7 @@ Route::middleware(['auth', 'role:redaction'])->group(function () {
         ->name('validation-export.download');
     Route::post('/validation-export/pdf', [ValidationExportController::class, 'downloadPdf'])
         ->name('validation-export.pdf');
+    Route::get('/validation-export/pdf', fn () => redirect()->route('validation-export.create'));
 
     Route::get('/coupure-fiche/{id}/xml', [FinalleController::class, 'exportXml'])
         ->name('coupure-fiche.xml');

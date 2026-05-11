@@ -8,6 +8,7 @@ use App\Models\CompletementSpatial;
 use App\Models\ControleCartographique;
 use App\Models\CoupureFiche;
 use App\Models\Digitalisation2d;
+use App\Models\Echelle;
 use App\Models\ExtractionAltimetrique;
 use App\Models\Metadata;
 use App\Models\RedactionCartographique;
@@ -21,6 +22,8 @@ use Inertia\Inertia;
 class ValidationExportController extends Controller
 {
     use UsesPhaseFields;
+
+    private const EXPORT_FORMATS = ['xml', 'pdf'];
 
     private function nextId(string $modelClass): int
     {
@@ -116,6 +119,8 @@ class ValidationExportController extends Controller
         return Inertia::render('Redaction/Validation', [
             'metadata' => $this->metadataRows(),
             'fiches' => $this->ficheRows(),
+            'echelles' => Echelle::orderBy('id')->get(['id', 'valeur']),
+            'formats' => self::EXPORT_FORMATS,
             'operateurs' => $this->operateurRows('validation'),
         ]);
     }

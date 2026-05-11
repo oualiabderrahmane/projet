@@ -85,6 +85,7 @@ function SelectFilter({ label, value, onChange, children }) {
 
 export default function Controle({
   metadata = [],
+  echelles = [],
   typesControle = [],
   niveauxControle = [],
   operateurs = [],
@@ -194,17 +195,13 @@ export default function Controle({
   ]);
 
   const echelleOptions = useMemo(() => {
-    return [
-      ...new Map(
-        controleFicheRows
-          .filter((fiche) => fiche.echelle_id && fiche.echelle_valeur)
-          .map((fiche) => [
-            idValue(fiche.echelle_id),
-            { id: idValue(fiche.echelle_id), label: fiche.echelle_valeur },
-          ])
-      ).values(),
-    ].sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  }, [controleFicheRows]);
+    return echelles
+      .filter((echelle) => echelle.id !== null && echelle.id !== undefined && echelle.valeur)
+      .map((echelle) => ({
+        id: idValue(echelle.id),
+        label: echelle.valeur,
+      }));
+  }, [echelles]);
 
   const hasControleFilters =
     feuilleFilter ||

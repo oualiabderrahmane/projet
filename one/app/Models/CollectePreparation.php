@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $operateur_id
  * @property Carbon|null $date_debut
  * @property Carbon|null $date_fin
- * @property int|null $geonames_annee_mise_a_jour
+ * @property string|null $geonames_annee_mise_a_jour
  * @property string|null $gadm_version
  * @property bool $traite
  * 
@@ -46,7 +46,6 @@ class CollectePreparation extends Model
 		'operateur_id' => 'int',
 		'date_debut' => 'datetime',
 		'date_fin' => 'datetime',
-		'geonames_annee_mise_a_jour' => 'int',
 		'traite' => 'bool'
 	];
 

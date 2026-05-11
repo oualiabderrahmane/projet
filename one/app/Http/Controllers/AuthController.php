@@ -21,7 +21,7 @@ class AuthController extends Controller
             'digitalisation' => 'digitalisation.home',
             'completment_spatial' => 'completment-spatial.home',
             'traitment_vecteur' => 'traitement-vecteur.home',
-            'redaction' => 'redaction.home',
+            'redaction' => 'redaction-cartographique.home',
         ];
 
         return isset($routesByRole[$role])
@@ -41,13 +41,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'nom' => 'required|string',
             'password' => 'required',
         ]);
 
         if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
-                'email' => 'Email ou mot de passe incorrect.',
+                'nom' => 'Nom ou mot de passe incorrect.',
             ]);
         }
 

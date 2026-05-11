@@ -221,7 +221,7 @@ export default function PreparationCreate({
               <TextInput
                 label="Source toponymique"
                 name="geonames_annee_mise_a_jour"
-                type="number"
+                type="text"
                 value={data.geonames_annee_mise_a_jour}
                 error={errors.geonames_annee_mise_a_jour}
                 onChange={setData}

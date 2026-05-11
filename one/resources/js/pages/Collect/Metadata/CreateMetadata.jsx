@@ -200,14 +200,18 @@ export default function CreateMetadata({
   required
 />
 
-        <Input
+        <SelectInput
   label="Coupure"
   name="coupure_nom"
   value={data.coupure_nom}
   error={errors.coupure_nom}
   onChange={setData}
   required
-/>
+>
+  <option value="">Sélectionner une coupure</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+        </SelectInput>
 
         <Input
   label="Nom de la coupure"

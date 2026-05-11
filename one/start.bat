@@ -71,8 +71,8 @@ echo  Vite:    http://127.0.0.1:5173
 echo ==========================================
 echo.
 echo Identifiants utiles:
-echo  admin@example.com / password
-echo  chef@example.com  / password
+echo  Touari / password
+echo  Fetata / password
 echo.
 echo Ne fermez pas cette fenetre pendant l'utilisation.
 echo.
